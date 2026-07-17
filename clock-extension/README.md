@@ -14,8 +14,16 @@ and dark blue for night based on sunrise/sunset at a user-entered location.
 
 By default the clock only opens when you click the icon. Tick **"Show the
 clock in every new tab"** in the sidebar to have every new tab redirect to
-the clock instead. (The `tabs` permission exists to detect newly created
-new-tab pages for this option; nothing is logged or sent anywhere.)
+the clock instead — Chrome will ask for the optional `tabs` permission at
+that moment (used only to detect newly created new-tab pages; it is released
+again when you untick the option).
+
+## Privacy
+
+Everything runs and stays on your device: the location, favorites, and
+options are stored in Chrome's local extension storage, sunrise/sunset is
+computed locally, and the extension makes no network requests and collects
+no data.
 
 ## Use
 

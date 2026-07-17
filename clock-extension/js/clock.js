@@ -126,10 +126,8 @@
 
   function buildFace() {
     for (var h = 0; h < 24; h++) {
-      var isMajor = h % 3 === 0;
-
       var tick = document.createElementNS(SVG_NS, 'line');
-      tick.setAttribute('stroke-width', isMajor ? '3' : '1.5');
+      tick.setAttribute('stroke-width', '2');
       tick.setAttribute('data-hour', h);
       tick.setAttribute('class', 'tick');
       ticksGroup.appendChild(tick);
@@ -151,9 +149,8 @@
   function layoutFace() {
     for (var h = 0; h < 24; h++) {
       var angle = displayAngle(hourToAngle(h));
-      var isMajor = h % 3 === 0;
       var outer = angleToPoint(angle, R - 4);
-      var inner = angleToPoint(angle, R - (isMajor ? 18 : 10));
+      var inner = angleToPoint(angle, R - 14);
 
       tickEls[h].setAttribute('x1', outer.x.toFixed(2));
       tickEls[h].setAttribute('y1', outer.y.toFixed(2));
@@ -167,6 +164,44 @@
   }
 
   buildFace();
+
+  // ---- Minute markers (optional, very faint) ----------------------------
+  // A 60-tick ring inside the hour ring. It reads against the minute hand's
+  // conventional :00-at-top frame, so it never rotates with the dial offset.
+
+  var minuteTicksGroup = document.getElementById('minute-ticks');
+
+  function buildMinuteRing() {
+    var OUTER = 118;
+    for (var m = 0; m < 60; m++) {
+      var angle = m / 60 * 360;
+      var outer = angleToPoint(angle, OUTER);
+      var inner = angleToPoint(angle, OUTER - (m % 5 === 0 ? 9 : 5));
+      var tick = document.createElementNS(SVG_NS, 'line');
+      tick.setAttribute('x1', outer.x.toFixed(2));
+      tick.setAttribute('y1', outer.y.toFixed(2));
+      tick.setAttribute('x2', inner.x.toFixed(2));
+      tick.setAttribute('y2', inner.y.toFixed(2));
+      tick.setAttribute('stroke-width', m % 5 === 0 ? '1.5' : '1');
+      tick.setAttribute('class', 'minute-tick');
+      minuteTicksGroup.appendChild(tick);
+    }
+
+    // Quarter-hour labels just inside the ring (minute frame: 0 at top).
+    [0, 15, 30, 45].forEach(function (m) {
+      var pos = angleToPoint(m / 60 * 360, OUTER - 19);
+      var label = document.createElementNS(SVG_NS, 'text');
+      label.setAttribute('x', pos.x.toFixed(2));
+      label.setAttribute('y', pos.y.toFixed(2));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('dominant-baseline', 'central');
+      label.setAttribute('class', 'minute-label');
+      label.textContent = String(m);
+      minuteTicksGroup.appendChild(label);
+    });
+  }
+
+  buildMinuteRing();
 
   // ---- Hands + animation loop -----------------------------------------
 

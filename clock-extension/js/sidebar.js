@@ -13,7 +13,8 @@
     overrideNewTabs: 'overrideNewTabs',
     orientation: 'orientation',
     showMinute: 'showMinuteHand',
-    showSecond: 'showSecondHand'
+    showSecond: 'showSecondHand',
+    showMinuteMarks: 'showMinuteMarks'
   };
 
   var PLACES = window.CITIES.slice().sort(function (a, b) {
@@ -71,8 +72,31 @@
   var overrideNewTab = document.getElementById('override-newtab');
 
   // The background service worker reads this flag when new tabs are created.
+  // The "tabs" permission is optional: requested here on enable (must happen
+  // inside the user gesture) and released again on disable, so the extension
+  // installs with no permission warnings.
+  var permissionsApi = (typeof chrome !== 'undefined' && chrome.permissions) || null;
+
   overrideNewTab.addEventListener('change', function () {
-    storage.set(makeEntry(STORAGE_KEYS.overrideNewTabs, overrideNewTab.checked));
+    if (!overrideNewTab.checked) {
+      storage.set(makeEntry(STORAGE_KEYS.overrideNewTabs, false));
+      if (permissionsApi) {
+        permissionsApi.remove({ permissions: ['tabs'] });
+      }
+      return;
+    }
+    if (!permissionsApi) { // plain-file development fallback
+      storage.set(makeEntry(STORAGE_KEYS.overrideNewTabs, true));
+      return;
+    }
+    permissionsApi.request({ permissions: ['tabs'] }, function (granted) {
+      if (granted) {
+        storage.set(makeEntry(STORAGE_KEYS.overrideNewTabs, true));
+      } else {
+        overrideNewTab.checked = false;
+        storage.set(makeEntry(STORAGE_KEYS.overrideNewTabs, false));
+      }
+    });
   });
 
   // ---- Orientation + hand visibility -------------------------------------
@@ -91,9 +115,12 @@
   orientNoon.addEventListener('change', onOrientationChange);
   orientCentered.addEventListener('change', onOrientationChange);
 
+  var showMinuteMarks = document.getElementById('show-minute-marks');
+
   function applyHandVisibility() {
     document.body.classList.toggle('hide-minute-hand', !showMinute.checked);
     document.body.classList.toggle('hide-second-hand', !showSecond.checked);
+    document.body.classList.toggle('show-minute-marks', showMinuteMarks.checked);
   }
 
   showMinute.addEventListener('change', function () {
@@ -103,6 +130,11 @@
 
   showSecond.addEventListener('change', function () {
     storage.set(makeEntry(STORAGE_KEYS.showSecond, showSecond.checked));
+    applyHandVisibility();
+  });
+
+  showMinuteMarks.addEventListener('change', function () {
+    storage.set(makeEntry(STORAGE_KEYS.showMinuteMarks, showMinuteMarks.checked));
     applyHandVisibility();
   });
 
@@ -328,6 +360,15 @@
     STORAGE_KEYS.showSecond
   ], function (items) {
     overrideNewTab.checked = items[STORAGE_KEYS.overrideNewTabs] === true;
+    // If the user revoked the tabs permission externally, reflect reality.
+    if (overrideNewTab.checked && permissionsApi) {
+      permissionsApi.contains({ permissions: ['tabs'] }, function (has) {
+        if (!has) {
+          overrideNewTab.checked = false;
+          storage.set(makeEntry(STORAGE_KEYS.overrideNewTabs, false));
+        }
+      });
+    }
 
     var centered = items[STORAGE_KEYS.orientation] === 'centered';
     orientCentered.checked = centered;
@@ -336,6 +377,7 @@
 
     showMinute.checked = items[STORAGE_KEYS.showMinute] !== false;
     showSecond.checked = items[STORAGE_KEYS.showSecond] !== false;
+    showMinuteMarks.checked = items[STORAGE_KEYS.showMinuteMarks] === true;
     applyHandVisibility();
     // Restore without animating: state should appear settled on load.
     document.body.classList.add('no-transition');
