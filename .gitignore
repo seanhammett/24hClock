@@ -1,0 +1,8 @@
+# Planning notes (not part of the extension)
+24-hour-clock-extension-plan.md
+
+# Distribution zips (rebuild from clock-extension/)
+*.zip
+
+# macOS
+.DS_Store
