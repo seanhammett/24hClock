@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24-Hour Clock</title>
+  <link rel="stylesheet" href="css/newtab.css">
+</head>
+<body>
+  <main class="clock-area">
+    <svg id="clock" viewBox="0 0 440 440" role="img" aria-label="24-hour analog clock with day and night shading">
+      <!-- Base face: night is the default; the daylight wedge is painted on top -->
+      <circle id="face-base" cx="220" cy="220" r="180" fill="#12233f"></circle>
+      <path id="day-wedge" d="" fill="#f4f1e8" visibility="hidden"></path>
+      <circle id="face-rim" cx="220" cy="220" r="180" fill="none" stroke="#3a4a6b" stroke-width="2"></circle>
+      <g id="sun-markers"></g>
+      <g id="ticks"></g>
+      <g id="numerals"></g>
+      <g id="hand-hour">
+        <line x1="220" y1="238" x2="220" y2="128" stroke="#1c2742" stroke-width="9" stroke-linecap="round"></line>
+        <line x1="220" y1="238" x2="220" y2="128" stroke="#f4f1e8" stroke-width="3" stroke-linecap="round"></line>
+      </g>
+      <g id="hand-minute">
+        <line x1="220" y1="244" x2="220" y2="72" stroke="#1c2742" stroke-width="6" stroke-linecap="round"></line>
+        <line x1="220" y1="244" x2="220" y2="72" stroke="#f4f1e8" stroke-width="2" stroke-linecap="round"></line>
+      </g>
+      <g id="hand-second">
+        <line x1="220" y1="252" x2="220" y2="58" stroke="#ff6b57" stroke-width="2" stroke-linecap="round"></line>
+      </g>
+      <circle id="hub" cx="220" cy="220" r="7" fill="#ff6b57" stroke="#1c2742" stroke-width="2"></circle>
+    </svg>
+    <div id="digital" class="digital" aria-hidden="true"></div>
+    <div id="date-readout" class="date-readout"></div>
+    <div id="location-readout" class="location-readout"></div>
+  </main>
+
+  <button id="sidebar-toggle" class="sidebar-toggle" aria-expanded="false" aria-controls="sidebar" title="Location settings">
+    <span class="chevron" aria-hidden="true">&#x2039;</span>
+    <span class="visually-hidden">Toggle location settings</span>
+  </button>
+
+  <aside id="sidebar" class="sidebar" aria-label="Location settings">
+    <h1>Location</h1>
+    <p class="hint">Enter coordinates to shade the clock face by daylight at your location.</p>
+
+    <div class="field">
+      <label for="place-select">Place</label>
+      <div class="place-row">
+        <select id="place-select"></select>
+        <button id="fav-toggle" class="fav-toggle" type="button" aria-pressed="false" title="Add to favorites" disabled>&#9734;</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="lat-input">Latitude</label>
+      <input type="number" id="lat-input" min="-90" max="90" step="any" placeholder="e.g. 48.8566" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="lon-input">Longitude</label>
+      <input type="number" id="lon-input" min="-180" max="180" step="any" placeholder="e.g. 2.3522" inputmode="decimal">
+    </div>
+    <p id="input-error" class="error" role="alert" hidden></p>
+
+    <div id="sun-times" class="sun-times" hidden>
+      <h2>Today</h2>
+      <p><span class="sun-label">Sunrise</span> <span id="sunrise-time">–</span></p>
+      <p><span class="sun-label">Sunset</span> <span id="sunset-time">–</span></p>
+      <p id="polar-note" class="polar-note" hidden></p>
+    </div>
+
+    <div class="options">
+      <h2>Options</h2>
+      <fieldset class="option-group">
+        <legend>Orientation</legend>
+        <label class="checkbox-label">
+          <input type="radio" name="orientation" id="orient-noon" value="noon" checked>
+          12 noon at top
+        </label>
+        <label class="checkbox-label">
+          <input type="radio" name="orientation" id="orient-centered" value="centered">
+          Day &amp; night centered
+        </label>
+      </fieldset>
+      <label class="checkbox-label">
+        <input type="checkbox" id="show-minute" checked>
+        Show minute hand
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="show-second" checked>
+        Show second hand
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="override-newtab">
+        Show the clock in every new tab
+      </label>
+    </div>
+
+    <p class="footnote">The clock shows the local time at the selected place. For custom coordinates the timezone is estimated from the longitude (whole hours, no daylight-saving adjustment).</p>
+  </aside>
+
+  <script src="js/suncalc.js"></script>
+  <script src="js/cities.js"></script>
+  <script src="js/clock.js"></script>
+  <script src="js/daynight.js"></script>
+  <script src="js/sidebar.js"></script>
+</body>
+</html>
