@@ -58,7 +58,20 @@ body {
 
 .sun-marker-label {
   fill: var(--text-dim);
-  font-size: 12px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wake-sleep-line {
+  stroke: #f2c14e;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.wake-sleep-label {
+  fill: #f2c14e;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .digital {
@@ -282,6 +295,22 @@ body.no-transition .sidebar-toggle {
   margin-bottom: 6px;
   font-size: 0.85rem;
   color: var(--text-dim);
+}
+
+.louis-times {
+  display: flex;
+  gap: 10px;
+  margin: 2px 0 12px 23px;
+}
+
+.louis-times .field {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.louis-times[hidden] {
+  display: none;
 }
 
 .checkbox-label {

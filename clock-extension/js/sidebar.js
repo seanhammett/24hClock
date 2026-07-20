@@ -12,6 +12,8 @@
     favorites: 'favorites',
     overrideNewTabs: 'overrideNewTabs',
     orientation: 'orientation',
+    wakeTime: 'wakeTime',
+    bedTime: 'bedTime',
     showMinute: 'showMinuteHand',
     showSecond: 'showSecondHand',
     showMinuteMarks: 'showMinuteMarks'
@@ -103,17 +105,40 @@
 
   var orientNoon = document.getElementById('orient-noon');
   var orientCentered = document.getElementById('orient-centered');
+  var orientLouis = document.getElementById('orient-louis');
+  var louisTimes = document.getElementById('louis-times');
+  var wakeInput = document.getElementById('wake-input');
+  var bedInput = document.getElementById('bed-input');
   var showMinute = document.getElementById('show-minute');
   var showSecond = document.getElementById('show-second');
 
+  function currentOrientation() {
+    if (orientCentered.checked) return 'centered';
+    if (orientLouis.checked) return 'louis';
+    return 'noon';
+  }
+
   function onOrientationChange() {
-    var mode = orientCentered.checked ? 'centered' : 'noon';
+    var mode = currentOrientation();
     storage.set(makeEntry(STORAGE_KEYS.orientation, mode));
+    louisTimes.hidden = mode !== 'louis';
     window.DayNight.setOrientation(mode);
   }
 
   orientNoon.addEventListener('change', onOrientationChange);
   orientCentered.addEventListener('change', onOrientationChange);
+  orientLouis.addEventListener('change', onOrientationChange);
+
+  function onWakeBedChange() {
+    var entry = {};
+    entry[STORAGE_KEYS.wakeTime] = wakeInput.value;
+    entry[STORAGE_KEYS.bedTime] = bedInput.value;
+    storage.set(entry);
+    window.DayNight.setWakeBed(wakeInput.value, bedInput.value);
+  }
+
+  wakeInput.addEventListener('change', onWakeBedChange);
+  bedInput.addEventListener('change', onWakeBedChange);
 
   var showMinuteMarks = document.getElementById('show-minute-marks');
 
@@ -356,6 +381,8 @@
     STORAGE_KEYS.favorites,
     STORAGE_KEYS.overrideNewTabs,
     STORAGE_KEYS.orientation,
+    STORAGE_KEYS.wakeTime,
+    STORAGE_KEYS.bedTime,
     STORAGE_KEYS.showMinute,
     STORAGE_KEYS.showSecond
   ], function (items) {
@@ -370,10 +397,20 @@
       });
     }
 
-    var centered = items[STORAGE_KEYS.orientation] === 'centered';
-    orientCentered.checked = centered;
-    orientNoon.checked = !centered;
-    window.DayNight.setOrientation(centered ? 'centered' : 'noon');
+    var saved = items[STORAGE_KEYS.orientation];
+    var mode = (saved === 'centered' || saved === 'louis') ? saved : 'noon';
+    orientCentered.checked = mode === 'centered';
+    orientLouis.checked = mode === 'louis';
+    orientNoon.checked = mode === 'noon';
+    louisTimes.hidden = mode !== 'louis';
+    if (typeof items[STORAGE_KEYS.wakeTime] === 'string') {
+      wakeInput.value = items[STORAGE_KEYS.wakeTime];
+    }
+    if (typeof items[STORAGE_KEYS.bedTime] === 'string') {
+      bedInput.value = items[STORAGE_KEYS.bedTime];
+    }
+    window.DayNight.setWakeBed(wakeInput.value, bedInput.value);
+    window.DayNight.setOrientation(mode);
 
     showMinute.checked = items[STORAGE_KEYS.showMinute] !== false;
     showSecond.checked = items[STORAGE_KEYS.showSecond] !== false;

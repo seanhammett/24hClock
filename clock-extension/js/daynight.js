@@ -21,10 +21,17 @@
   var faceBase = document.getElementById('face-base');
   var dayWedge = document.getElementById('day-wedge');
   var markersGroup = document.getElementById('sun-markers');
+  var louisGroup = document.getElementById('wake-sleep-lines');
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
+  var LABEL_RADIUS = R + 8;   // inner end of each radial rim label
+  var MIN_LABEL_GAP = 4;      // min degrees between labels before they overlap
+
   var location = null; // { lat, lon } or null
-  var orientation = 'noon'; // 'noon' (12 at top) | 'centered' (day slice at top)
+  // 'noon' (12 at top) | 'centered' (day slice at top) | 'louis' (waking hours at top)
+  var orientation = 'noon';
+  var wakeTime = '07:00'; // "HH:MM" — Louis XIV mode wake-up
+  var bedTime = '23:00';  // "HH:MM" — Louis XIV mode bedtime
 
   /**
    * Pie-slice path from startAngle clockwise to endAngle (degrees from
@@ -60,8 +67,9 @@
   }
 
   function addMarker(angle, timeText) {
+    // Tick tip stops short of LABEL_RADIUS so the label clears the orange mark.
     var inner = Clock24.angleToPoint(angle, R - 2);
-    var outer = Clock24.angleToPoint(angle, R + 8);
+    var outer = Clock24.angleToPoint(angle, R + 4);
     var tick = document.createElementNS(SVG_NS, 'line');
     tick.setAttribute('x1', inner.x.toFixed(2));
     tick.setAttribute('y1', inner.y.toFixed(2));
@@ -70,14 +78,12 @@
     tick.setAttribute('class', 'sun-marker');
     markersGroup.appendChild(tick);
 
-    var pos = Clock24.angleToPoint(angle, R + 24);
     var label = document.createElementNS(SVG_NS, 'text');
-    label.setAttribute('x', pos.x.toFixed(2));
-    label.setAttribute('y', pos.y.toFixed(2));
-    label.setAttribute('text-anchor', 'middle');
     label.setAttribute('dominant-baseline', 'central');
     label.setAttribute('class', 'sun-marker-label');
+    label.setAttribute('data-angle', angle);
     label.textContent = timeText;
+    placeRimLabel(label, angle);
     markersGroup.appendChild(label);
   }
 
@@ -118,27 +124,169 @@
     notify({ state: isPolarDay ? 'polar-day' : 'polar-night' });
   }
 
+  /** Parse "HH:MM" to minutes past midnight, or null if malformed. */
+  function parseHM(str) {
+    var m = /^(\d{1,2}):(\d{2})$/.exec(str || '');
+    if (!m) return null;
+    var h = +m[1], min = +m[2];
+    if (h > 23 || min > 59) return null;
+    return h * 60 + min;
+  }
+
+  /**
+   * Dial offset that puts the midpoint of the waking window at the top, so
+   * the awake hours sit symmetric about the vertical axis. Wake/bed are dial
+   * readings (the frame the hands already use), so no timezone conversion is
+   * needed. A bedtime at or before wake means it falls the next day.
+   */
+  function louisOffset() {
+    var wake = parseHM(wakeTime);
+    var bed = parseHM(bedTime);
+    if (wake === null || bed === null) return 0;
+    if (bed <= wake) bed += 1440;
+    var midFraction = ((wake + bed) / 2 % 1440) / 1440;
+    return -((midFraction * 360 + 180) % 360);
+  }
+
+  /** Dial angle for a time given in minutes past midnight. */
+  function minutesToAngle(minutes) {
+    return (minutes / 1440 * 360 + 180) % 360;
+  }
+
+  /** Format minutes-past-midnight the same way the sun times are shown. */
+  function formatMinutes(minutes) {
+    var d = new Date(2000, 0, 1);
+    d.setMinutes(minutes);
+    return formatTime(d);
+  }
+
+  function clearLouisLines() {
+    while (louisGroup.firstChild) {
+      louisGroup.removeChild(louisGroup.firstChild);
+    }
+  }
+
+  /** A thin line from the hub to the rim, with the time called out outside it. */
+  function addLouisLine(angle, timeText) {
+    var end = Clock24.angleToPoint(angle, R);
+    var line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', C);
+    line.setAttribute('y1', C);
+    line.setAttribute('x2', end.x.toFixed(2));
+    line.setAttribute('y2', end.y.toFixed(2));
+    line.setAttribute('class', 'wake-sleep-line');
+    louisGroup.appendChild(line);
+
+    var label = document.createElementNS(SVG_NS, 'text');
+    label.setAttribute('dominant-baseline', 'central');
+    label.setAttribute('class', 'wake-sleep-label');
+    label.setAttribute('data-angle', angle);
+    label.textContent = timeText;
+    placeRimLabel(label, angle);
+    louisGroup.appendChild(label);
+  }
+
+  /** Draw the wake/sleep lines when Louis XIV mode is on; otherwise clear them. */
+  function renderLouisLines() {
+    clearLouisLines();
+    if (orientation !== 'louis') return;
+    var wake = parseHM(wakeTime);
+    var bed = parseHM(bedTime);
+    if (wake === null || bed === null) return;
+    addLouisLine(Clock24.displayAngle(minutesToAngle(wake)), formatMinutes(wake));
+    addLouisLine(Clock24.displayAngle(minutesToAngle(bed)), formatMinutes(bed));
+  }
+
+  /**
+   * Place a rim time label as a radial spoke: its center line runs along the
+   * marker's radial line, its inner end just past the rim, reading outward. On
+   * the right half the text is left-justified; on the left half it is right-
+   * justified and flipped 180° so it stays upright. Keeping labels radial (not
+   * horizontal) shrinks their tangential footprint, so near-coincident times
+   * need far less separation.
+   */
+  function placeRimLabel(el, angle) {
+    var rad = angle * Math.PI / 180;
+    var s = Math.sin(rad), c = Math.cos(rad);
+    var p = Clock24.angleToPoint(angle, LABEL_RADIUS);
+    var rot = Math.atan2(-c, s) * 180 / Math.PI; // outward radial direction
+    var anchor = 'start';
+    if (s < 0) { anchor = 'end'; rot += 180; } // left half: flip to stay upright
+    el.setAttribute('x', p.x.toFixed(2));
+    el.setAttribute('y', p.y.toFixed(2));
+    el.setAttribute('text-anchor', anchor);
+    el.setAttribute('transform',
+      'rotate(' + rot.toFixed(2) + ' ' + p.x.toFixed(2) + ' ' + p.y.toFixed(2) + ')');
+  }
+
+  /**
+   * When two rim time labels (sun and/or wake/sleep) fall at nearly the same
+   * angle they overlap — e.g. a wake time within a couple of minutes of
+   * sunrise. Slide the crowded ones apart along the rim so both stay readable,
+   * pushing each symmetrically away from the shared midpoint. Only the text
+   * moves; every tick and line still points at its true time.
+   */
+  function resolveLabelCollisions() {
+    var els = document.querySelectorAll('.sun-marker-label, .wake-sleep-label');
+    if (els.length < 2) return;
+    var items = [];
+    for (var i = 0; i < els.length; i++) {
+      items.push({ el: els[i], angle: Number(els[i].getAttribute('data-angle')) });
+    }
+    items.sort(function (a, b) { return a.angle - b.angle; });
+    var n = items.length;
+
+    for (var iter = 0; iter < 50; iter++) {
+      var moved = false;
+      for (var j = 0; j < n; j++) {
+        var a = items[j];
+        var b = items[(j + 1) % n];
+        var gap = b.angle - a.angle + (j === n - 1 ? 360 : 0);
+        if (gap < MIN_LABEL_GAP - 1e-6) {
+          var push = (MIN_LABEL_GAP - gap) / 2;
+          a.angle -= push;
+          b.angle += push;
+          moved = true;
+        }
+      }
+      if (!moved) break;
+    }
+
+    items.forEach(function (it) { placeRimLabel(it.el, it.angle); });
+  }
+
   /**
    * Dial offset for the current orientation. Centered mode puts solar noon
    * (which sunrise and sunset are symmetric about) at the top, so the day
    * slice mirrors across the vertical axis — including on polar days/nights,
-   * where there is no sunrise but solar noon is still defined.
+   * where there is no sunrise but solar noon is still defined. Louis XIV mode
+   * centers the manually entered waking window instead, independent of location.
    */
   function computeDialOffset(times) {
+    if (orientation === 'louis') return louisOffset();
     if (orientation !== 'centered' || !times) return 0;
     return -Clock24.timeToAngle(Clock24.toZoned(times.solarNoon));
   }
 
   function refresh() {
+    // Orient first: Louis XIV mode centers the waking window with no location.
+    var times = location
+      ? SunCalc.getTimes(new Date(), location.lat, location.lon)
+      : null;
+    Clock24.setDialOffset(computeDialOffset(times));
+    renderLouisLines();
+
     if (!location) {
-      Clock24.setDialOffset(0);
       renderNeutral();
-      return;
+    } else {
+      renderForLocation(times);
     }
 
-    var now = new Date();
-    var times = SunCalc.getTimes(now, location.lat, location.lon);
-    Clock24.setDialOffset(computeDialOffset(times));
+    // Both sun and wake/sleep labels are now placed; separate any that clash.
+    resolveLabelCollisions();
+  }
+
+  function renderForLocation(times) {
     var sunriseValid = !isNaN(times.sunrise.getTime());
     var sunsetValid = !isNaN(times.sunset.getTime());
 
@@ -179,8 +327,13 @@
       refresh();
     },
     setOrientation: function (mode) {
-      orientation = mode === 'centered' ? 'centered' : 'noon';
+      orientation = (mode === 'centered' || mode === 'louis') ? mode : 'noon';
       refresh();
+    },
+    setWakeBed: function (wake, bed) {
+      wakeTime = wake;
+      bedTime = bed;
+      if (orientation === 'louis') refresh();
     },
     refresh: refresh
   };

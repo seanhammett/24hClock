@@ -17,6 +17,8 @@
       <g id="minute-ticks"></g>
       <g id="ticks"></g>
       <g id="numerals"></g>
+      <!-- Louis XIV wake/sleep lines: over the day/night fill, under the hands -->
+      <g id="wake-sleep-lines"></g>
       <g id="hand-hour">
         <line x1="220" y1="238" x2="220" y2="128" stroke="#1c2742" stroke-width="9" stroke-linecap="round"></line>
         <line x1="220" y1="238" x2="220" y2="128" stroke="#f4f1e8" stroke-width="3" stroke-linecap="round"></line>
@@ -81,6 +83,20 @@
           <input type="radio" name="orientation" id="orient-centered" value="centered">
           Day &amp; night centered
         </label>
+        <label class="checkbox-label">
+          <input type="radio" name="orientation" id="orient-louis" value="louis">
+          Louis&nbsp;XIV
+        </label>
+        <div id="louis-times" class="louis-times" hidden>
+          <div class="field">
+            <label for="wake-input">Wake up</label>
+            <input type="time" id="wake-input" value="07:00">
+          </div>
+          <div class="field">
+            <label for="bed-input">Bedtime</label>
+            <input type="time" id="bed-input" value="23:00">
+          </div>
+        </div>
       </fieldset>
       <label class="checkbox-label">
         <input type="checkbox" id="show-minute" checked>
