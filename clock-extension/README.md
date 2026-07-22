@@ -39,10 +39,17 @@ no data.
 - With no location saved the face renders in a neutral single color.
 - Polar day/night locations render a fully light/dark face with a note in the
   sidebar.
-- Options: dial orientation — "12 noon at top" (default) or "Day & night
+- A sun or moon rides the hour hand: the sun is cut off by the edge of the
+  night slice as it sets, and the moon is revealed by it in turn, so the icon
+  always matches the region of the face the hand is in.
+- Options: dial orientation — "12 noon at top" (default), "Day & night
   centered", which rotates the whole dial (numerals, shading, hour hand) so
-  the day and night slices mirror across the vertical axis; the minute and
-  second hands can each be hidden independently.
+  the day and night slices mirror across the vertical axis, or "Louis XIV",
+  which centers your waking hours (wake-up and bedtime are entered below the
+  option and drawn as lines on the face); the minute and second hands can each
+  be hidden independently, and a faint 60-minute marker ring can be shown.
 
 Sunrise/sunset is computed locally with the vendored [SunCalc](https://github.com/mourner/suncalc)
-library (MIT) — the extension makes no network requests.
+library (MIT) — the extension makes no network requests. The interface is set
+in [IBM Plex Sans](https://github.com/IBM/plex), bundled in `fonts/` under the
+SIL Open Font License 1.1 (see `fonts/LICENSE.txt`).

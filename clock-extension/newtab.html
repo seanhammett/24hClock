@@ -9,6 +9,24 @@
 <body>
   <main class="clock-area">
     <svg id="clock" viewBox="0 0 440 440" role="img" aria-label="24-hour analog clock with day and night shading">
+      <defs>
+        <!-- The sun is drawn only where the face is in daylight and the moon
+             only where it is in night, so each one is cut off by the edge of
+             the slice it is crossing. daynight.js keeps both regions current. -->
+        <clipPath id="clip-day">
+          <path id="clip-day-path" d=""></path>
+        </clipPath>
+        <clipPath id="clip-night">
+          <path id="clip-night-path" clip-rule="evenodd" d=""></path>
+        </clipPath>
+        <!-- Crescent: a disc with a second disc bitten out of its left. The
+             bite is offset on x only, so the horns point straight up and down
+             whatever the hour. -->
+        <mask id="moon-crescent" maskUnits="userSpaceOnUse" x="-20" y="-20" width="40" height="40">
+          <circle cx="0" cy="0" r="15" fill="#fff"></circle>
+          <circle cx="-8" cy="0" r="15" fill="#000"></circle>
+        </mask>
+      </defs>
       <!-- Base face: night is the default; the daylight wedge is painted on top -->
       <circle id="face-base" cx="220" cy="220" r="180" fill="#12233f"></circle>
       <path id="day-wedge" d="" fill="#f4f1e8" visibility="hidden"></path>
@@ -16,12 +34,38 @@
       <g id="sun-markers"></g>
       <g id="minute-ticks"></g>
       <g id="ticks"></g>
-      <g id="numerals"></g>
+      <!-- Two copies of the numerals, each clipped to one region, so a numeral
+           straddling the day/night edge is drawn dark on the daylight side and
+           light on the night side rather than picking one colour for the whole
+           glyph. daynight.js sets the group fills. -->
+      <g id="numerals-day" clip-path="url(#clip-day)"></g>
+      <g id="numerals-night" clip-path="url(#clip-night)"></g>
       <!-- Louis XIV wake/sleep lines: over the day/night fill, under the hands -->
       <g id="wake-sleep-lines"></g>
       <g id="hand-hour">
         <line x1="220" y1="238" x2="220" y2="128" stroke="#1c2742" stroke-width="9" stroke-linecap="round"></line>
         <line x1="220" y1="238" x2="220" y2="128" stroke="#f4f1e8" stroke-width="3" stroke-linecap="round"></line>
+      </g>
+      <!-- Sun and moon ride the hour hand, above the face and the hour hand it
+           caps, but below the minute and second hands, which sweep over them.
+           The clip lives on the outer group so its path stays in face
+           coordinates while the inner group carries the position. -->
+      <g id="hand-icons">
+        <g clip-path="url(#clip-day)">
+          <g id="sun-icon">
+            <circle r="15" fill="#ebc363" stroke="#16233d" stroke-width="2.5"></circle>
+          </g>
+        </g>
+        <g clip-path="url(#clip-night)">
+          <g id="moon-icon">
+            <!-- The dark side is painted in the night fill rather than left
+                 transparent, so the whole disc hides the hour hand behind it.
+                 The outline goes on last so the crescent cannot cover it. -->
+            <circle r="15" fill="#12233f"></circle>
+            <circle r="15" fill="#f4f1e9" mask="url(#moon-crescent)"></circle>
+            <circle r="15" fill="none" stroke="#16233d" stroke-width="2.5"></circle>
+          </g>
+        </g>
       </g>
       <g id="hand-minute">
         <line x1="220" y1="244" x2="220" y2="72" stroke="#1c2742" stroke-width="6" stroke-linecap="round"></line>

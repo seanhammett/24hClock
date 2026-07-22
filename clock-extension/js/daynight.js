@@ -24,6 +24,20 @@
   var louisGroup = document.getElementById('wake-sleep-lines');
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
+  var clipDayPath = document.getElementById('clip-day-path');
+  var clipNightPath = document.getElementById('clip-night-path');
+  var handIcons = document.getElementById('hand-icons');
+
+  // Each numeral copy takes its colour from its group, so a glyph crossing the
+  // boundary shows the right colour on each side of it.
+  document.getElementById('numerals-day').setAttribute('fill', NUMERAL_ON_DAY);
+  document.getElementById('numerals-night').setAttribute('fill', NUMERAL_ON_NIGHT);
+
+  // Two half-arcs, because a single arc cannot describe a full circle.
+  var FULL_FACE = 'M ' + (C - R) + ' ' + C +
+    ' A ' + R + ' ' + R + ' 0 1 0 ' + (C + R) + ' ' + C +
+    ' A ' + R + ' ' + R + ' 0 1 0 ' + (C - R) + ' ' + C + ' Z';
+
   var LABEL_RADIUS = R + 8;   // inner end of each radial rim label
   var MIN_LABEL_GAP = 4;      // min degrees between labels before they overlap
 
@@ -49,6 +63,28 @@
       ' L ' + p1.x.toFixed(2) + ' ' + p1.y.toFixed(2) +
       ' A ' + R + ' ' + R + ' 0 ' + largeArcFlag + ' 1 ' +
       p2.x.toFixed(2) + ' ' + p2.y.toFixed(2) + ' Z';
+  }
+
+  /**
+   * Define the daylight and night regions of the face. Everything that has to
+   * change appearance at the boundary — the sun and moon icons, and both
+   * copies of the numerals — is clipped to one of the two, so they all split
+   * on exactly the same edge as the wedge itself. Night is the face with the
+   * daylight wedge knocked out of it under the even-odd rule.
+   */
+  function setRegions(dayPath) {
+    clipDayPath.setAttribute('d', dayPath || '');
+    if (dayPath === FULL_FACE) {
+      clipNightPath.setAttribute('d', ''); // daylight everywhere
+    } else if (dayPath) {
+      clipNightPath.setAttribute('d', FULL_FACE + ' ' + dayPath);
+    } else {
+      clipNightPath.setAttribute('d', FULL_FACE);
+    }
+  }
+
+  function setIconsVisible(visible) {
+    handIcons.setAttribute('visibility', visible ? 'visible' : 'hidden');
   }
 
   /** Is the given dial angle inside the clockwise daylight span? */
@@ -87,20 +123,17 @@
     markersGroup.appendChild(label);
   }
 
-  /** Color every tick and numeral for the region of the face it sits in. */
+  /**
+   * Color every tick for the region of the face it sits in. Numerals need no
+   * pass of their own: they are drawn once per region and clipped, which also
+   * splits the ones that straddle the boundary.
+   */
   function paintDialText(regionForHour) {
     var ticks = document.querySelectorAll('#ticks .tick');
-    var numerals = document.querySelectorAll('#numerals .numeral');
-    var i, el, day;
-    for (i = 0; i < ticks.length; i++) {
-      el = ticks[i];
-      day = regionForHour(Number(el.getAttribute('data-hour')));
+    for (var i = 0; i < ticks.length; i++) {
+      var el = ticks[i];
+      var day = regionForHour(Number(el.getAttribute('data-hour')));
       el.setAttribute('stroke', day ? TICK_ON_DAY : TICK_ON_NIGHT);
-    }
-    for (i = 0; i < numerals.length; i++) {
-      el = numerals[i];
-      day = regionForHour(Number(el.getAttribute('data-hour')));
-      el.setAttribute('fill', day ? NUMERAL_ON_DAY : NUMERAL_ON_NIGHT);
     }
   }
 
@@ -111,6 +144,10 @@
   function renderNeutral() {
     faceBase.setAttribute('fill', NEUTRAL_FILL);
     dayWedge.setAttribute('visibility', 'hidden');
+    // No location means no day or night to be in, so neither icon applies.
+    // The face still counts as night so the numerals stay legible on it.
+    setRegions('');
+    setIconsVisible(false);
     clearMarkers();
     paintDialText(function () { return false; });
     notify({ state: 'empty' });
@@ -119,6 +156,8 @@
   function renderPolar(isPolarDay) {
     faceBase.setAttribute('fill', isPolarDay ? DAY_FILL : NIGHT_FILL);
     dayWedge.setAttribute('visibility', 'hidden');
+    setRegions(isPolarDay ? FULL_FACE : '');
+    setIconsVisible(true);
     clearMarkers();
     paintDialText(function () { return isPolarDay; });
     notify({ state: isPolarDay ? 'polar-day' : 'polar-night' });
@@ -306,9 +345,12 @@
     var daySweep = (sunsetAngle - sunriseAngle + 360) % 360;
 
     faceBase.setAttribute('fill', NIGHT_FILL);
-    dayWedge.setAttribute('d', wedgePath(Clock24.displayAngle(sunriseAngle),
-      Clock24.displayAngle(sunsetAngle)));
+    var dayPath = wedgePath(Clock24.displayAngle(sunriseAngle),
+      Clock24.displayAngle(sunsetAngle));
+    dayWedge.setAttribute('d', dayPath);
     dayWedge.setAttribute('visibility', 'visible');
+    setRegions(dayPath);
+    setIconsVisible(true);
 
     clearMarkers();
     addMarker(Clock24.displayAngle(sunriseAngle), formatTime(sunriseLocal));

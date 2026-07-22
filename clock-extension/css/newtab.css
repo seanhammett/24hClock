@@ -61,9 +61,10 @@ body {
 /* ---- Clock -------------------------------------------------------- */
 
 .clock-area {
-  /* 72vh matches the design's face-to-panel ratio and leaves room for the
-     readout block below it */
-  --clock-size: min(72vh, 88vw);
+  /* The readout block below the clock adds roughly 15% of the clock's height
+     (its top margin plus three tightly led lines), so the column runs about
+     1.15x this value — keep it under ~86vh or the location line clips. */
+  --clock-size: min(80vh, 88vw);
   position: absolute;
   inset: 0;
   display: flex;

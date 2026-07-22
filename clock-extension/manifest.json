@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "24-Hour Day/Night Clock",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Analog clock with a 24-hour hour hand and day/night shading. Click the icon to open it; optionally take over new tabs.",
   "action": {
     "default_title": "Open the 24-hour clock"

@@ -119,10 +119,15 @@
   // ---- Static face: 24 ticks + numerals -------------------------------
 
   var ticksGroup = document.getElementById('ticks');
-  var numeralsGroup = document.getElementById('numerals');
+  // One numeral set per region; the two are identical and sit exactly on top
+  // of each other, so only the clipped parts of each are ever visible.
+  var numeralGroups = [
+    document.getElementById('numerals-day'),
+    document.getElementById('numerals-night')
+  ];
 
   var tickEls = [];
-  var numeralEls = [];
+  var numeralEls = []; // [hour] -> array of the copies for that hour
 
   function buildFace() {
     for (var h = 0; h < 24; h++) {
@@ -133,14 +138,18 @@
       ticksGroup.appendChild(tick);
       tickEls.push(tick);
 
-      var label = document.createElementNS(SVG_NS, 'text');
-      label.setAttribute('text-anchor', 'middle');
-      label.setAttribute('dominant-baseline', 'central');
-      label.setAttribute('data-hour', h);
-      label.setAttribute('class', 'numeral');
-      label.textContent = String(h);
-      numeralsGroup.appendChild(label);
-      numeralEls.push(label);
+      var copies = [];
+      for (var g = 0; g < numeralGroups.length; g++) {
+        var label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('dominant-baseline', 'central');
+        label.setAttribute('data-hour', h);
+        label.setAttribute('class', 'numeral');
+        label.textContent = String(h);
+        numeralGroups[g].appendChild(label);
+        copies.push(label);
+      }
+      numeralEls.push(copies);
     }
     layoutFace();
   }
@@ -158,8 +167,10 @@
       tickEls[h].setAttribute('y2', inner.y.toFixed(2));
 
       var pos = angleToPoint(angle, R - 34);
-      numeralEls[h].setAttribute('x', pos.x.toFixed(2));
-      numeralEls[h].setAttribute('y', pos.y.toFixed(2));
+      for (var g = 0; g < numeralEls[h].length; g++) {
+        numeralEls[h][g].setAttribute('x', pos.x.toFixed(2));
+        numeralEls[h][g].setAttribute('y', pos.y.toFixed(2));
+      }
     }
   }
 
@@ -208,6 +219,11 @@
   var hourHand = document.getElementById('hand-hour');
   var minuteHand = document.getElementById('hand-minute');
   var secondHand = document.getElementById('hand-second');
+  var sunIcon = document.getElementById('sun-icon');
+  var moonIcon = document.getElementById('moon-icon');
+  // Set in from the hand's tip (at 92) so the tip stays visible past the icon.
+  var ICON_RADIUS = 70;
+
   var digitalMain = document.getElementById('digital-main');
   var digitalSeconds = document.getElementById('digital-seconds');
   var dateReadout = document.getElementById('date-readout');
@@ -223,7 +239,15 @@
   function frame() {
     var now = zonedNow();
 
-    rotate(hourHand, displayAngle(timeToAngle(now)));
+    var hourAngle = displayAngle(timeToAngle(now));
+    rotate(hourHand, hourAngle);
+
+    // Translate rather than rotate the icons so the crescent stays upright.
+    var tip = angleToPoint(hourAngle, ICON_RADIUS);
+    var iconAt = 'translate(' + tip.x.toFixed(2) + ' ' + tip.y.toFixed(2) + ')';
+    sunIcon.setAttribute('transform', iconAt);
+    moonIcon.setAttribute('transform', iconAt);
+
     rotate(minuteHand, (now.getMinutes() + now.getSeconds() / 60) / 60 * 360);
     rotate(secondHand, (now.getSeconds() + now.getMilliseconds() / 1000) / 60 * 360);
 
