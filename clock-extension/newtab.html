@@ -32,9 +32,11 @@
       </g>
       <circle id="hub" cx="220" cy="220" r="7" fill="#ff6b57" stroke="#1c2742" stroke-width="2"></circle>
     </svg>
-    <div id="digital" class="digital" aria-hidden="true"></div>
-    <div id="date-readout" class="date-readout"></div>
-    <div id="location-readout" class="location-readout"></div>
+    <div class="readout">
+      <div id="digital" class="digital" aria-hidden="true"><span id="digital-main"></span><span id="digital-seconds" class="digital-seconds"></span></div>
+      <div id="date-readout" class="date-readout"></div>
+      <div id="location-readout" class="location-readout"></div>
+    </div>
   </main>
 
   <button id="sidebar-toggle" class="sidebar-toggle" aria-expanded="false" aria-controls="sidebar" title="Location settings">

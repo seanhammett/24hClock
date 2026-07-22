@@ -208,7 +208,8 @@
   var hourHand = document.getElementById('hand-hour');
   var minuteHand = document.getElementById('hand-minute');
   var secondHand = document.getElementById('hand-second');
-  var digital = document.getElementById('digital');
+  var digitalMain = document.getElementById('digital-main');
+  var digitalSeconds = document.getElementById('digital-seconds');
   var dateReadout = document.getElementById('date-readout');
 
   function rotate(el, angle) {
@@ -217,6 +218,7 @@
 
   var lastDateKey = null;
   var lastDigital = '';
+  var lastSeconds = -1;
 
   function frame() {
     var now = zonedNow();
@@ -228,7 +230,14 @@
     var text = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     if (text !== lastDigital) {
       lastDigital = text;
-      digital.textContent = text;
+      digitalMain.textContent = text;
+    }
+
+    // Seconds are a separate, dimmer span so hours and minutes read first
+    var secs = now.getSeconds();
+    if (secs !== lastSeconds) {
+      lastSeconds = secs;
+      digitalSeconds.textContent = ':' + (secs < 10 ? '0' : '') + secs;
     }
 
     // Recompute sunrise/sunset and the date line when the date rolls over.

@@ -262,8 +262,10 @@
       locationReadout.textContent = '';
     } else {
       var place = findPlace(loc.place);
-      locationReadout.textContent = (place ? place.label + ' — ' : '') +
-        formatCoords(loc.lat, loc.lon);
+      var coords = formatCoords(loc.lat, loc.lon);
+      locationReadout.textContent = place
+        ? place.label + ' (' + coords + ')'
+        : coords;
     }
   }
 
