@@ -17,6 +17,7 @@
     showMinute: 'showMinuteHand',
     showSecond: 'showSecondHand',
     showMinuteMarks: 'showMinuteMarks',
+    showSubhourTicks: 'showSubhourTicks',
     showWakeSleep: 'showWakeSleep'
   };
 
@@ -199,6 +200,17 @@
   showMinuteMarks.addEventListener('change', function () {
     storage.set(makeEntry(STORAGE_KEYS.showMinuteMarks, showMinuteMarks.checked));
     applyHandVisibility();
+  });
+
+  var showSubhourTicks = document.getElementById('show-subhour-ticks');
+
+  function applySubhourTicks() {
+    document.body.classList.toggle('hide-subhour-ticks', !showSubhourTicks.checked);
+  }
+
+  showSubhourTicks.addEventListener('change', function () {
+    storage.set(makeEntry(STORAGE_KEYS.showSubhourTicks, showSubhourTicks.checked));
+    applySubhourTicks();
   });
 
   // ---- Collapse / expand ------------------------------------------------
@@ -426,6 +438,7 @@
     STORAGE_KEYS.showMinute,
     STORAGE_KEYS.showSecond,
     STORAGE_KEYS.showMinuteMarks,
+    STORAGE_KEYS.showSubhourTicks,
     STORAGE_KEYS.showWakeSleep
   ], function (items) {
     overrideNewTab.checked = items[STORAGE_KEYS.overrideNewTabs] === true;
@@ -465,6 +478,8 @@
     showSecond.checked = items[STORAGE_KEYS.showSecond] !== false;
     showMinuteMarks.checked = items[STORAGE_KEYS.showMinuteMarks] === true;
     applyHandVisibility();
+    showSubhourTicks.checked = items[STORAGE_KEYS.showSubhourTicks] !== false;
+    applySubhourTicks();
     // Restore without animating: state should appear settled on load.
     document.body.classList.add('no-transition');
     // Default to expanded on first run so the location inputs are discoverable.

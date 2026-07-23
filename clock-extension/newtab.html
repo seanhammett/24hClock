@@ -33,8 +33,12 @@
       <!-- Base face: night is the default; the daylight wedge is painted on top -->
       <circle id="face-base" cx="220" cy="220" r="180" fill="#12233f"></circle>
       <path id="day-wedge" d="" fill="#f4f1e8" visibility="hidden"></path>
-      <circle id="face-rim" cx="220" cy="220" r="180" fill="none" stroke="#3a4a6b" stroke-width="2"></circle>
       <g id="sun-markers"></g>
+      <!-- Current time, marked on the rim in the same style as sunrise and
+           sunset. Rotated by clock.js with the hour hand it echoes. -->
+      <g id="now-marker">
+        <circle cx="220" cy="49" r="5" class="now-marker"></circle>
+      </g>
       <g id="minute-ticks"></g>
       <g id="ticks"></g>
       <!-- Two copies of the numerals, each clipped to one region, so a numeral
@@ -149,6 +153,11 @@
         <label class="checkbox-label checkbox-sub" id="minute-marks-row">
           <input type="checkbox" id="show-minute-marks">
           Show minute markers
+        </label>
+        <!-- The whole-hour ticks always stay; this is just the subdivisions. -->
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-subhour-ticks" checked>
+          Show half &amp; quarter hour ticks
         </label>
         <label class="checkbox-label">
           <input type="checkbox" id="show-second" checked>

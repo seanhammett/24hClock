@@ -125,12 +125,21 @@
     markersGroup.appendChild(label);
   }
 
+  // Whether an unrotated dial angle is in daylight, as of the last render.
+  // Anything that has to flip whole at the boundary rather than be clipped by
+  // it — the current-time marker — asks this instead of using the clip paths.
+  var daylightAt = function () { return false; };
+
   /**
    * Color every tick for the region of the face it sits in. Numerals need no
    * pass of their own: they are drawn once per region and clipped, which also
    * splits the ones that straddle the boundary.
    */
   function paintDialText(regionForHour) {
+    // The test is written in hours, so invert hourToAngle to reuse it.
+    daylightAt = function (angle) {
+      return regionForHour((((angle - 180) % 360) + 360) % 360 / 15);
+    };
     var ticks = document.querySelectorAll('#ticks .tick');
     for (var i = 0; i < ticks.length; i++) {
       var el = ticks[i];
@@ -366,6 +375,8 @@
   }
 
   window.DayNight = {
+    /** Is this unrotated dial angle in daylight, as of the last render? */
+    isDaylightAt: function (angle) { return daylightAt(angle); },
     setLocation: function (loc) {
       location = loc;
       refresh();

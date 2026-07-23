@@ -127,18 +127,35 @@
     document.getElementById('numerals-night')
   ];
 
-  var tickEls = [];
+  // Ticks run at quarter-hour steps: the hour marks full length, the halves
+  // shorter, the quarters shorter still, so the eye picks out the hours first
+  // and can still read the subdivisions between them.
+  var TICK_LENGTHS = { 1: 10, 0.5: 6, 0.25: 3.5 };
+  var TICK_WIDTHS =  { 1: 2,  0.5: 1, 0.25: 1 };
+
+  var tickEls = []; // { el, hour, length } for every quarter-hour mark
   var numeralEls = []; // [hour] -> array of the copies for that hour
 
   function buildFace() {
-    for (var h = 0; h < 24; h++) {
+    for (var q = 0; q < 96; q++) {
+      var hour = q / 4;
+      // Largest step the mark falls on: whole hour, half, or quarter.
+      var step = q % 4 === 0 ? 1 : (q % 2 === 0 ? 0.5 : 0.25);
       var tick = document.createElementNS(SVG_NS, 'line');
-      tick.setAttribute('stroke-width', '2');
-      tick.setAttribute('data-hour', h);
-      tick.setAttribute('class', 'tick');
+      tick.setAttribute('stroke-width', String(TICK_WIDTHS[step]));
+      // daynight.js colours each tick by the region it sits in; it takes a
+      // fractional hour as happily as a whole one.
+      tick.setAttribute('data-hour', hour);
+      // Same stroke colour as the hours — daynight.js paints them all — but
+      // held back by opacity, which fades toward whichever fill is behind it
+      // rather than toward one fixed colour.
+      tick.setAttribute('class', step === 1 ? 'tick'
+        : (step === 0.5 ? 'tick tick-half' : 'tick tick-quarter'));
       ticksGroup.appendChild(tick);
-      tickEls.push(tick);
+      tickEls.push({ el: tick, hour: hour, length: TICK_LENGTHS[step] });
+    }
 
+    for (var h = 0; h < 24; h++) {
       var copies = [];
       for (var g = 0; g < numeralGroups.length; g++) {
         var label = document.createElementNS(SVG_NS, 'text');
@@ -157,16 +174,22 @@
 
   /** Position ticks and numerals for the current dial offset. */
   function layoutFace() {
+    for (var i = 0; i < tickEls.length; i++) {
+      var t = tickEls[i];
+      // All ticks hang from the same outer edge, so the ring reads as one line
+      // however far each mark reaches in.
+      var tickAngle = displayAngle(hourToAngle(t.hour));
+      var outer = angleToPoint(tickAngle, R - 4);
+      var inner = angleToPoint(tickAngle, R - 4 - t.length);
+
+      t.el.setAttribute('x1', outer.x.toFixed(2));
+      t.el.setAttribute('y1', outer.y.toFixed(2));
+      t.el.setAttribute('x2', inner.x.toFixed(2));
+      t.el.setAttribute('y2', inner.y.toFixed(2));
+    }
+
     for (var h = 0; h < 24; h++) {
       var angle = displayAngle(hourToAngle(h));
-      var outer = angleToPoint(angle, R - 4);
-      var inner = angleToPoint(angle, R - 14);
-
-      tickEls[h].setAttribute('x1', outer.x.toFixed(2));
-      tickEls[h].setAttribute('y1', outer.y.toFixed(2));
-      tickEls[h].setAttribute('x2', inner.x.toFixed(2));
-      tickEls[h].setAttribute('y2', inner.y.toFixed(2));
-
       // Set out far enough that the minute hand sweeps inside the numerals.
       var pos = angleToPoint(angle, R - 30);
       for (var g = 0; g < numeralEls[h].length; g++) {
@@ -187,7 +210,7 @@
   function buildMinuteRing() {
     // Just inside the hour numerals (centred at R - 30), which is also where
     // the minute hand's tip lands, so the hand points right at the ring.
-    var OUTER = 136;
+    var OUTER = 130;
     for (var m = 0; m < 60; m++) {
       var angle = m / 60 * 360;
       var outer = angleToPoint(angle, OUTER);
@@ -225,6 +248,8 @@
   // ---- Hands + animation loop -----------------------------------------
 
   var hourHand = document.getElementById('hand-hour');
+  var nowMarker = document.getElementById('now-marker');
+  var markerInDay = null; // null so the first frame always sets the class
   var minuteHand = document.getElementById('hand-minute');
   var secondHand = document.getElementById('hand-second');
   var sunIcon = document.getElementById('sun-icon');
@@ -268,8 +293,22 @@
   function frame() {
     var now = zonedNow();
 
-    var hourAngle = displayAngle(timeToAngle(now));
+    var trueAngle = timeToAngle(now);
+    var hourAngle = displayAngle(trueAngle);
     rotate(hourHand, hourAngle);
+    // Same angle as the hour hand, so the rim mark always lines up with it.
+    rotate(nowMarker, hourAngle);
+
+    // The marker flips whole at sunrise and sunset rather than being clipped
+    // by the boundary, so it is never drawn half in one colour and half in the
+    // other. The daylight span is kept in unrotated angles, so ask in those.
+    if (window.DayNight) {
+      var inDay = window.DayNight.isDaylightAt(trueAngle);
+      if (inDay !== markerInDay) {
+        markerInDay = inDay;
+        nowMarker.classList.toggle('on-day', inDay);
+      }
+    }
 
     // Translate rather than rotate the icons so the crescent stays upright.
     var tip = angleToPoint(hourAngle, iconRadius);

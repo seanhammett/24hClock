@@ -89,6 +89,20 @@ body {
   stroke-linecap: round;
 }
 
+/* Rides the hour-tick band, filling it edge to edge, in the hour hand's
+   colours: white on the night fill, inverting to the dark fill on the cream
+   daylight wedge. Neither needs an outline — each is already the opposite of
+   what it sits on. clock.js flips the class the moment the marker passes
+   sunrise or sunset. */
+.now-marker {
+  fill: #f4f1e8;
+  stroke: none;
+}
+
+#now-marker.on-day .now-marker {
+  fill: #1c2742;
+}
+
 .sun-marker-label {
   fill: var(--text-dim);
   font-size: 10px;
@@ -153,6 +167,22 @@ body {
 
 body.hide-minute-hand #hand-minute,
 body.hide-second-hand #hand-second {
+  display: none;
+}
+
+/* Sub-hour marks on the hour ring. They take the same day/night stroke as the
+   hours (daynight.js sets it), so fading them by opacity blends each one
+   toward the fill it happens to sit on rather than toward one fixed colour. */
+.tick-half {
+  stroke-opacity: 0.5;
+}
+
+.tick-quarter {
+  stroke-opacity: 0.3;
+}
+
+body.hide-subhour-ticks .tick-half,
+body.hide-subhour-ticks .tick-quarter {
   display: none;
 }
 
