@@ -28,26 +28,34 @@ no data.
 ## Use
 
 - Click the chevron on the right edge to open the settings sidebar.
-- Pick a place from the dropdown — 115 major cities worldwide, with a
+- Pick a place from the dropdown — 123 major cities worldwide, with a
   Favorites group pinned at the top (★ button adds/removes the selected
   city) — or enter latitude (−90…90) and longitude (−180…180) manually;
   the location auto-saves and the face shades to today's daylight span, with
   sunrise/sunset marked on the rim.
 - The clock shows the local time at the selected location. Dropdown places
-  use their exact IANA timezone (DST-aware); custom coordinates estimate the
-  timezone from longitude (whole hours, no DST).
+  use their exact IANA timezone (DST-aware); for custom coordinates the zone is
+  looked up from the coordinates themselves, falling back to an estimate from
+  the longitude (whole hours, no DST) only if that lookup fails.
 - With no location saved the face renders in a neutral single color.
 - Polar day/night locations render a fully light/dark face with a note in the
   sidebar.
 - A sun or moon rides the hour hand: the sun is cut off by the edge of the
   night slice as it sets, and the moon is revealed by it in turn, so the icon
-  always matches the region of the face the hand is in.
+  always matches the region of the face the hand is in. The moon's lit face is
+  shaped to the real phase for the day, crescent through full and back.
+- The current time is also marked on the hour-tick ring by a disc that flips
+  between light and dark as it passes sunrise and sunset.
 - Options: dial orientation — "12 noon at top" (default), "Day & night
   centered", which rotates the whole dial (numerals, shading, hour hand) so
   the day and night slices mirror across the vertical axis, or "Louis XIV",
   which centers your waking hours (wake-up and bedtime are entered below the
-  option and drawn as lines on the face); the minute and second hands can each
-  be hidden independently, and a faint 60-minute marker ring can be shown.
+  option and drawn as lines on the face, independently of the orientation);
+  the minute and second hands can each be hidden independently, a faint
+  60-minute marker ring can be shown alongside the minute hand, and the half-
+  and quarter-hour ticks on the hour ring can be turned off to leave just the
+  hours. With the minute hand hidden the hour hand reaches further out, taking
+  the room it no longer has to leave clear.
 
 Sunrise/sunset is computed locally with the vendored [SunCalc](https://github.com/mourner/suncalc)
 library (MIT) — the extension makes no network requests. The interface is set
