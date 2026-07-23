@@ -185,7 +185,9 @@
   var minuteTicksGroup = document.getElementById('minute-ticks');
 
   function buildMinuteRing() {
-    var OUTER = 118;
+    // Just inside the hour numerals (centred at R - 30), which is also where
+    // the minute hand's tip lands, so the hand points right at the ring.
+    var OUTER = 136;
     for (var m = 0; m < 60; m++) {
       var angle = m / 60 * 360;
       var outer = angleToPoint(angle, OUTER);
@@ -227,8 +229,29 @@
   var secondHand = document.getElementById('hand-second');
   var sunIcon = document.getElementById('sun-icon');
   var moonIcon = document.getElementById('moon-icon');
-  // Set in from the hand's tip (at 92) so the tip stays visible past the icon.
-  var ICON_RADIUS = 70;
+
+  // With the minute hand shown the hour hand stops well short of it; with the
+  // minute hand hidden there is nothing to leave room for, so it reaches out
+  // most of the way to where that hand would have ended and the icon rides out
+  // with it. The icon sits a fixed distance back from the tip either way, so
+  // the tip stays visible past it.
+  var HAND_TIP_SHORT = 92;
+  var HAND_TIP_LONG = 126;
+  var ICON_INSET = 22;
+
+  var hourHandLines = hourHand.getElementsByTagName('line');
+  var iconRadius = HAND_TIP_SHORT - ICON_INSET;
+
+  /** Run the hour hand out to the minute hand's reach, or pull it back in. */
+  function setHourHandExtended(extended) {
+    var tip = extended ? HAND_TIP_LONG : HAND_TIP_SHORT;
+    iconRadius = tip - ICON_INSET;
+    for (var i = 0; i < hourHandLines.length; i++) {
+      hourHandLines[i].setAttribute('y2', String(C - tip));
+    }
+  }
+
+  window.Clock24.setHourHandExtended = setHourHandExtended;
 
   var digitalMain = document.getElementById('digital-main');
   var digitalSeconds = document.getElementById('digital-seconds');
@@ -249,7 +272,7 @@
     rotate(hourHand, hourAngle);
 
     // Translate rather than rotate the icons so the crescent stays upright.
-    var tip = angleToPoint(hourAngle, ICON_RADIUS);
+    var tip = angleToPoint(hourAngle, iconRadius);
     var iconAt = 'translate(' + tip.x.toFixed(2) + ' ' + tip.y.toFixed(2) + ')';
     sunIcon.setAttribute('transform', iconAt);
     moonIcon.setAttribute('transform', iconAt);

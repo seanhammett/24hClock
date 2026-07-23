@@ -61,6 +61,7 @@ window.CITIES = [
   { id: 'amsterdam', label: 'Amsterdam, Netherlands', lat: 52.3676, lon: 4.9041, tz: 'Europe/Amsterdam' },
   { id: 'athens', label: 'Athens, Greece', lat: 37.9838, lon: 23.7275, tz: 'Europe/Athens' },
   { id: 'barcelona', label: 'Barcelona, Spain', lat: 41.3874, lon: 2.1686, tz: 'Europe/Madrid' },
+  { id: 'bergen', label: 'Bergen, Norway', lat: 60.3913, lon: 5.3221, tz: 'Europe/Oslo' },
   { id: 'berlin', label: 'Berlin, Germany', lat: 52.5200, lon: 13.4050, tz: 'Europe/Berlin' },
   { id: 'brussels', label: 'Brussels, Belgium', lat: 50.8503, lon: 4.3517, tz: 'Europe/Brussels' },
   { id: 'budapest', label: 'Budapest, Hungary', lat: 47.4979, lon: 19.0402, tz: 'Europe/Budapest' },
@@ -68,10 +69,12 @@ window.CITIES = [
   { id: 'dublin', label: 'Dublin, Ireland', lat: 53.3498, lon: -6.2603, tz: 'Europe/Dublin' },
   { id: 'edinburgh', label: 'Edinburgh, United Kingdom', lat: 55.9533, lon: -3.1883, tz: 'Europe/London' },
   { id: 'geneva', label: 'Geneva, Switzerland', lat: 46.2044, lon: 6.1432, tz: 'Europe/Zurich' },
+  { id: 'hammerfest', label: 'Hammerfest, Norway', lat: 70.6610, lon: 23.6826, tz: 'Europe/Oslo' },
   { id: 'helsinki', label: 'Helsinki, Finland', lat: 60.1699, lon: 24.9384, tz: 'Europe/Helsinki' },
   { id: 'kyiv', label: 'Kyiv, Ukraine', lat: 50.4501, lon: 30.5234, tz: 'Europe/Kyiv' },
   { id: 'landevieille', label: 'Landevieille, France', lat: 46.6431, lon: -1.8028, tz: 'Europe/Paris' },
   { id: 'lisbon', label: 'Lisbon, Portugal', lat: 38.7223, lon: -9.1393, tz: 'Europe/Lisbon' },
+  { id: 'longyearbyen', label: 'Longyearbyen, Svalbard', lat: 78.2232, lon: 15.6469, tz: 'Arctic/Longyearbyen' },
   { id: 'london', label: 'London, United Kingdom', lat: 51.5074, lon: -0.1278, tz: 'Europe/London' },
   { id: 'madrid', label: 'Madrid, Spain', lat: 40.4168, lon: -3.7038, tz: 'Europe/Madrid' },
   { id: 'marseille', label: 'Marseille, France', lat: 43.2965, lon: 5.3698, tz: 'Europe/Paris' },
@@ -80,6 +83,7 @@ window.CITIES = [
   { id: 'munich', label: 'Munich, Germany', lat: 48.1351, lon: 11.5820, tz: 'Europe/Berlin' },
   { id: 'oslo', label: 'Oslo, Norway', lat: 59.9139, lon: 10.7522, tz: 'Europe/Oslo' },
   { id: 'paris', label: 'Paris, France', lat: 48.8566, lon: 2.3522, tz: 'Europe/Paris' },
+  { id: 'Port-aux-Français', label: 'Port-aux-Français, Kerguelen Islands', lat: -49.3500, lon: 70.2167, tz: 'Indian/Kerguelen' },
   { id: 'prague', label: 'Prague, Czechia', lat: 50.0755, lon: 14.4378, tz: 'Europe/Prague' },
   { id: 'reykjavik', label: 'Reykjavík, Iceland', lat: 64.1466, lon: -21.9426, tz: 'Atlantic/Reykjavik' },
   { id: 'rome', label: 'Rome, Italy', lat: 41.9028, lon: 12.4964, tz: 'Europe/Rome' },
@@ -108,6 +112,7 @@ window.CITIES = [
   { id: 'seattle', label: 'Seattle, WA, USA', lat: 47.6062, lon: -122.3321, tz: 'America/Los_Angeles' },
   { id: 'sonoma', label: 'Sonoma, CA, USA', lat: 38.2919, lon: -122.4580, tz: 'America/Los_Angeles' },
   { id: 'toronto', label: 'Toronto, Canada', lat: 43.6532, lon: -79.3832, tz: 'America/Toronto' },
+  { id: 'utqiaġvik', label: 'Utqiaġvik, AK, USA', lat: 71.2906, lon: -156.7886, tz: 'America/Anchorage' },
   { id: 'vancouver', label: 'Vancouver, Canada', lat: 49.2827, lon: -123.1207, tz: 'America/Vancouver' },
   { id: 'washington', label: 'Washington, DC, USA', lat: 38.9072, lon: -77.0369, tz: 'America/New_York' },
 
@@ -122,6 +127,7 @@ window.CITIES = [
   { id: 'riodejaneiro', label: 'Rio de Janeiro, Brazil', lat: -22.9068, lon: -43.1729, tz: 'America/Sao_Paulo' },
   { id: 'santiago', label: 'Santiago, Chile', lat: -33.4489, lon: -70.6693, tz: 'America/Santiago' },
   { id: 'saopaulo', label: 'São Paulo, Brazil', lat: -23.5505, lon: -46.6333, tz: 'America/Sao_Paulo' },
+  { id: 'ushuaia', label: 'Ushuaia, Argentina', lat: -54.8019, lon: -68.3030, tz: 'America/Argentina/Ushuaia' },
 
   // Oceania
   { id: 'adelaide', label: 'Adelaide, Australia', lat: -34.9285, lon: 138.6007, tz: 'Australia/Adelaide' },
@@ -129,7 +135,11 @@ window.CITIES = [
   { id: 'brisbane', label: 'Brisbane, Australia', lat: -27.4698, lon: 153.0251, tz: 'Australia/Brisbane' },
   { id: 'melbourne', label: 'Melbourne, Australia', lat: -37.8136, lon: 144.9631, tz: 'Australia/Melbourne' },
   { id: 'perth', label: 'Perth, Australia', lat: -31.9505, lon: 115.8605, tz: 'Australia/Perth' },
+  { id: 'queenstown', label: 'Queenstown, New Zealand', lat: -45.0312, lon: 168.6626, tz: 'Pacific/Auckland' },
   { id: 'suva', label: 'Suva, Fiji', lat: -18.1416, lon: 178.4419, tz: 'Pacific/Fiji' },
   { id: 'sydney', label: 'Sydney, Australia', lat: -33.8688, lon: 151.2093, tz: 'Australia/Sydney' },
-  { id: 'wellington', label: 'Wellington, New Zealand', lat: -41.2866, lon: 174.7756, tz: 'Pacific/Auckland' }
+  { id: 'wellington', label: 'Wellington, New Zealand', lat: -41.2866, lon: 174.7756, tz: 'Pacific/Auckland' },
+
+  // Antarctica
+  { id: 'mcmurdo', label: 'McMurdo Station, Antarctica', lat: -77.8419, lon: 166.6863, tz: 'Antarctica/McMurdo' }
 ];

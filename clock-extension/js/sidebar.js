@@ -24,7 +24,7 @@
     return a.label.localeCompare(b.label);
   });
 
-  var DEFAULT_FAVORITES = ['marseille', 'landevieille', 'london', 'sonoma', 'capetown'];
+  var DEFAULT_FAVORITES = ['marseille', 'landevieille', 'london', 'sonoma', 'capetown', 'utqiagvik', 'mcmurdo'];
   var favorites = DEFAULT_FAVORITES.slice();
 
   function findPlace(id) {
@@ -181,6 +181,9 @@
     document.body.classList.toggle('show-minute-marks',
       showMinute.checked && showMinuteMarks.checked);
     minuteMarksRow.hidden = !showMinute.checked;
+    // Nothing to keep clear of once the minute hand is off, so the hour hand
+    // and the sun/moon it carries take the extra room.
+    window.Clock24.setHourHandExtended(!showMinute.checked);
   }
 
   showMinute.addEventListener('change', function () {
