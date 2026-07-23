@@ -19,12 +19,15 @@
         <clipPath id="clip-night">
           <path id="clip-night-path" clip-rule="evenodd" d=""></path>
         </clipPath>
-        <!-- Crescent: a disc with a second disc bitten out of its left. The
-             bite is offset on x only, so the horns point straight up and down
-             whatever the hour. -->
+        <!-- Lit face of the moon, shaped to the current phase by moonphase.js.
+             The half disc is whichever limb the sun is on; the ellipse is the
+             terminator, its width falling to nothing at the quarters. Painted
+             white it adds to the half (gibbous), black it bites into it
+             (crescent). Both are upright in the mask's own frame, so the horns
+             point straight up and down whatever the hour. -->
         <mask id="moon-crescent" maskUnits="userSpaceOnUse" x="-20" y="-20" width="40" height="40">
-          <circle cx="0" cy="0" r="15" fill="#fff"></circle>
-          <circle cx="-8" cy="0" r="15" fill="#000"></circle>
+          <path id="moon-lit-half" d="" fill="#fff"></path>
+          <ellipse id="moon-terminator" cx="0" cy="0" rx="15" ry="15" fill="#000"></ellipse>
         </mask>
       </defs>
       <!-- Base face: night is the default; the daylight wedge is painted on top -->
@@ -58,18 +61,19 @@
         </g>
         <g clip-path="url(#clip-night)">
           <g id="moon-icon">
-            <!-- The dark side is painted in the night fill rather than left
-                 transparent, so the whole disc hides the hour hand behind it.
-                 The outline goes on last so the crescent cannot cover it. -->
-            <circle r="15" fill="#12233f"></circle>
+            <!-- The dark side is painted a touch lighter than the night fill
+                 rather than left transparent, so the whole disc reads against
+                 the face and hides the hour hand behind it. The outline goes on
+                 last so the crescent cannot cover it. -->
+            <circle r="15" fill="#25395e"></circle>
             <circle r="15" fill="#f4f1e9" mask="url(#moon-crescent)"></circle>
             <circle r="15" fill="none" stroke="#16233d" stroke-width="2.5"></circle>
           </g>
         </g>
       </g>
       <g id="hand-minute">
-        <line x1="220" y1="244" x2="220" y2="72" stroke="#1c2742" stroke-width="6" stroke-linecap="round"></line>
-        <line x1="220" y1="244" x2="220" y2="72" stroke="#f4f1e8" stroke-width="2" stroke-linecap="round"></line>
+        <line x1="220" y1="244" x2="220" y2="84" stroke="#1c2742" stroke-width="6" stroke-linecap="round"></line>
+        <line x1="220" y1="244" x2="220" y2="84" stroke="#f4f1e8" stroke-width="2" stroke-linecap="round"></line>
       </g>
       <g id="hand-second">
         <line x1="220" y1="252" x2="220" y2="58" stroke="#ff6b57" stroke-width="2" stroke-linecap="round"></line>
@@ -141,7 +145,8 @@
           <input type="checkbox" id="show-minute" checked>
           Show minute hand
         </label>
-        <label class="checkbox-label">
+        <!-- Markers only mean anything with a minute hand to read against. -->
+        <label class="checkbox-label checkbox-sub" id="minute-marks-row">
           <input type="checkbox" id="show-minute-marks">
           Show minute markers
         </label>
@@ -181,6 +186,7 @@
   <script src="js/cities.js"></script>
   <script src="js/tz-lookup.js"></script>
   <script src="js/clock.js"></script>
+  <script src="js/moonphase.js"></script>
   <script src="js/daynight.js"></script>
   <script src="js/sidebar.js"></script>
 </body>

@@ -167,7 +167,8 @@
       tickEls[h].setAttribute('x2', inner.x.toFixed(2));
       tickEls[h].setAttribute('y2', inner.y.toFixed(2));
 
-      var pos = angleToPoint(angle, R - 34);
+      // Set out far enough that the minute hand sweeps inside the numerals.
+      var pos = angleToPoint(angle, R - 30);
       for (var g = 0; g < numeralEls[h].length; g++) {
         numeralEls[h][g].setAttribute('x', pos.x.toFixed(2));
         numeralEls[h][g].setAttribute('y', pos.y.toFixed(2));
@@ -199,18 +200,22 @@
       minuteTicksGroup.appendChild(tick);
     }
 
-    // Quarter-hour labels just inside the ring (minute frame: 0 at top).
-    [0, 15, 30, 45].forEach(function (m) {
-      var pos = angleToPoint(m / 60 * 360, OUTER - 19);
+    // Five-minute labels just inside the ring (minute frame: 0 at top). The
+    // quarters carry a touch more weight so the ring still reads at a glance.
+    for (var i = 0; i < 12; i++) {
+      var minute = i * 5;
+      var pos = angleToPoint(minute / 60 * 360, OUTER - 19);
       var label = document.createElementNS(SVG_NS, 'text');
       label.setAttribute('x', pos.x.toFixed(2));
       label.setAttribute('y', pos.y.toFixed(2));
       label.setAttribute('text-anchor', 'middle');
       label.setAttribute('dominant-baseline', 'central');
-      label.setAttribute('class', 'minute-label');
-      label.textContent = String(m);
+      label.setAttribute('class', minute % 15 === 0
+        ? 'minute-label minute-label-quarter'
+        : 'minute-label');
+      label.textContent = String(minute);
       minuteTicksGroup.appendChild(label);
-    });
+    }
   }
 
   buildMinuteRing();
@@ -275,6 +280,10 @@
       if (window.DayNight) {
         window.DayNight.refresh();
       }
+      // The phase moves slowly enough that once a day is plenty.
+      if (window.MoonPhase) {
+        window.MoonPhase.refresh(now);
+      }
     }
 
     requestAnimationFrame(frame);
@@ -285,8 +294,8 @@
   // Recompute when the tab becomes visible again (rAF is throttled while
   // hidden, so the date-rollover check may be stale after sleep/wake).
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && window.DayNight) {
-      window.DayNight.refresh();
-    }
+    if (document.hidden) return;
+    if (window.DayNight) window.DayNight.refresh();
+    if (window.MoonPhase) window.MoonPhase.refresh();
   });
 })();

@@ -170,11 +170,17 @@
   });
 
   var showMinuteMarks = document.getElementById('show-minute-marks');
+  var minuteMarksRow = document.getElementById('minute-marks-row');
 
+  // The marker ring is read against the minute hand, so it follows it: the
+  // option is offered only while the hand is on, and its own setting is kept
+  // so turning the hand back on restores the ring as the user left it.
   function applyHandVisibility() {
     document.body.classList.toggle('hide-minute-hand', !showMinute.checked);
     document.body.classList.toggle('hide-second-hand', !showSecond.checked);
-    document.body.classList.toggle('show-minute-marks', showMinuteMarks.checked);
+    document.body.classList.toggle('show-minute-marks',
+      showMinute.checked && showMinuteMarks.checked);
+    minuteMarksRow.hidden = !showMinute.checked;
   }
 
   showMinute.addEventListener('change', function () {
