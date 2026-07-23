@@ -11,8 +11,9 @@
   // ---- Timezone handling ------------------------------------------------
   // The clock can display the time at the saved location rather than the
   // browser's. A zone spec is either { type: 'iana', name: 'Europe/Paris' }
-  // (exact, DST-aware) or { type: 'offset', minutes: 120 } (approximated
-  // from longitude for custom coordinates), or null for the browser's zone.
+  // (exact, DST-aware — from cities.js, or from tz-lookup for custom
+  // coordinates) or { type: 'offset', minutes: 120 } (approximated from
+  // longitude, only if the lookup fails), or null for the browser's zone.
 
   var zoneSpec = null;
   var zoneFormatter = null;

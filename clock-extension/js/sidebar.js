@@ -16,7 +16,8 @@
     bedTime: 'bedTime',
     showMinute: 'showMinuteHand',
     showSecond: 'showSecondHand',
-    showMinuteMarks: 'showMinuteMarks'
+    showMinuteMarks: 'showMinuteMarks',
+    showWakeSleep: 'showWakeSleep'
   };
 
   var PLACES = window.CITIES.slice().sort(function (a, b) {
@@ -33,9 +34,25 @@
     return null;
   }
 
-  /** Timezone for custom coordinates: whole-hour offset from longitude. */
+  /** Last-resort timezone for custom coordinates: whole-hour offset from longitude. */
   function zoneFromLongitude(lon) {
     return { type: 'offset', minutes: Math.round(lon / 15) * 60 };
+  }
+
+  /**
+   * Timezone for arbitrary coordinates. tz-lookup gives a real IANA zone
+   * (so DST and half-hour offsets come out right); the longitude offset is
+   * kept as a fallback for a name this browser's Intl cannot resolve.
+   */
+  function zoneForCoords(lat, lon) {
+    if (typeof tzlookup === 'function') {
+      try {
+        var name = tzlookup(lat, lon);
+        new Intl.DateTimeFormat('en-US', { timeZone: name }); // throws if unknown
+        return { type: 'iana', name: name };
+      } catch (e) { /* fall through */ }
+    }
+    return zoneFromLongitude(lon);
   }
 
   // chrome.storage.local in the extension; localStorage fallback so the
@@ -106,11 +123,12 @@
   var orientNoon = document.getElementById('orient-noon');
   var orientCentered = document.getElementById('orient-centered');
   var orientLouis = document.getElementById('orient-louis');
-  var louisTimes = document.getElementById('louis-times');
+  var wakeTimes = document.getElementById('wake-times');
   var wakeInput = document.getElementById('wake-input');
   var bedInput = document.getElementById('bed-input');
   var showMinute = document.getElementById('show-minute');
   var showSecond = document.getElementById('show-second');
+  var showWakeSleep = document.getElementById('show-wake-sleep');
 
   function currentOrientation() {
     if (orientCentered.checked) return 'centered';
@@ -118,10 +136,15 @@
     return 'noon';
   }
 
+  /** The wake/bed inputs matter when the lines are shown or the dial uses them. */
+  function updateWakeTimesVisibility() {
+    wakeTimes.hidden = !showWakeSleep.checked && !orientLouis.checked;
+  }
+
   function onOrientationChange() {
     var mode = currentOrientation();
     storage.set(makeEntry(STORAGE_KEYS.orientation, mode));
-    louisTimes.hidden = mode !== 'louis';
+    updateWakeTimesVisibility();
     window.DayNight.setOrientation(mode);
   }
 
@@ -139,6 +162,12 @@
 
   wakeInput.addEventListener('change', onWakeBedChange);
   bedInput.addEventListener('change', onWakeBedChange);
+
+  showWakeSleep.addEventListener('change', function () {
+    storage.set(makeEntry(STORAGE_KEYS.showWakeSleep, showWakeSleep.checked));
+    updateWakeTimesVisibility();
+    window.DayNight.setShowWakeSleep(showWakeSleep.checked);
+  });
 
   var showMinuteMarks = document.getElementById('show-minute-marks');
 
@@ -337,7 +366,7 @@
           lat: result.location.lat,
           lon: result.location.lon,
           place: 'custom',
-          tz: zoneFromLongitude(result.location.lon)
+          tz: zoneForCoords(result.location.lat, result.location.lon)
         };
       }
       storage.set(makeEntry(STORAGE_KEYS.location, loc));
@@ -386,7 +415,9 @@
     STORAGE_KEYS.wakeTime,
     STORAGE_KEYS.bedTime,
     STORAGE_KEYS.showMinute,
-    STORAGE_KEYS.showSecond
+    STORAGE_KEYS.showSecond,
+    STORAGE_KEYS.showMinuteMarks,
+    STORAGE_KEYS.showWakeSleep
   ], function (items) {
     overrideNewTab.checked = items[STORAGE_KEYS.overrideNewTabs] === true;
     // If the user revoked the tabs permission externally, reflect reality.
@@ -404,7 +435,13 @@
     orientCentered.checked = mode === 'centered';
     orientLouis.checked = mode === 'louis';
     orientNoon.checked = mode === 'noon';
-    louisTimes.hidden = mode !== 'louis';
+    // The lines used to come with Louis XIV mode, so keep them on for anyone
+    // already in it who has never touched the new checkbox.
+    var savedWakeSleep = items[STORAGE_KEYS.showWakeSleep];
+    showWakeSleep.checked = typeof savedWakeSleep === 'boolean'
+      ? savedWakeSleep
+      : mode === 'louis';
+    updateWakeTimesVisibility();
     if (typeof items[STORAGE_KEYS.wakeTime] === 'string') {
       wakeInput.value = items[STORAGE_KEYS.wakeTime];
     }
@@ -412,6 +449,7 @@
       bedInput.value = items[STORAGE_KEYS.bedTime];
     }
     window.DayNight.setWakeBed(wakeInput.value, bedInput.value);
+    window.DayNight.setShowWakeSleep(showWakeSleep.checked);
     window.DayNight.setOrientation(mode);
 
     showMinute.checked = items[STORAGE_KEYS.showMinute] !== false;
@@ -437,7 +475,12 @@
     if (loc && typeof loc.lat === 'number' && typeof loc.lon === 'number') {
       if (!loc.tz) { // saves from before timezones existed
         loc.place = 'custom';
-        loc.tz = zoneFromLongitude(loc.lon);
+        loc.tz = zoneForCoords(loc.lat, loc.lon);
+      }
+      if (loc.tz.type === 'offset' && !findPlace(loc.place)) {
+        // Upgrade coordinates saved under the old longitude approximation.
+        loc.tz = zoneForCoords(loc.lat, loc.lon);
+        storage.set(makeEntry(STORAGE_KEYS.location, loc));
       }
       latInput.value = loc.lat;
       lonInput.value = loc.lon;

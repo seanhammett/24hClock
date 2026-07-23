@@ -44,8 +44,10 @@
   var location = null; // { lat, lon } or null
   // 'noon' (12 at top) | 'centered' (day slice at top) | 'louis' (waking hours at top)
   var orientation = 'noon';
-  var wakeTime = '07:00'; // "HH:MM" — Louis XIV mode wake-up
-  var bedTime = '23:00';  // "HH:MM" — Louis XIV mode bedtime
+  var wakeTime = '07:00'; // "HH:MM" — wake-up
+  var bedTime = '23:00';  // "HH:MM" — bedtime
+  // Wake/sleep rim markings, independent of the orientation the dial uses.
+  var showWakeSleep = false;
 
   /**
    * Pie-slice path from startAngle clockwise to endAngle (degrees from
@@ -199,14 +201,14 @@
     return formatTime(d);
   }
 
-  function clearLouisLines() {
+  function clearWakeSleepLines() {
     while (louisGroup.firstChild) {
       louisGroup.removeChild(louisGroup.firstChild);
     }
   }
 
   /** A thin line from the hub to the rim, with the time called out outside it. */
-  function addLouisLine(angle, timeText) {
+  function addWakeSleepLine(angle, timeText) {
     var end = Clock24.angleToPoint(angle, R);
     var line = document.createElementNS(SVG_NS, 'line');
     line.setAttribute('x1', C);
@@ -225,15 +227,15 @@
     louisGroup.appendChild(label);
   }
 
-  /** Draw the wake/sleep lines when Louis XIV mode is on; otherwise clear them. */
-  function renderLouisLines() {
-    clearLouisLines();
-    if (orientation !== 'louis') return;
+  /** Draw the wake/sleep lines when they are switched on; otherwise clear them. */
+  function renderWakeSleepLines() {
+    clearWakeSleepLines();
+    if (!showWakeSleep) return;
     var wake = parseHM(wakeTime);
     var bed = parseHM(bedTime);
     if (wake === null || bed === null) return;
-    addLouisLine(Clock24.displayAngle(minutesToAngle(wake)), formatMinutes(wake));
-    addLouisLine(Clock24.displayAngle(minutesToAngle(bed)), formatMinutes(bed));
+    addWakeSleepLine(Clock24.displayAngle(minutesToAngle(wake)), formatMinutes(wake));
+    addWakeSleepLine(Clock24.displayAngle(minutesToAngle(bed)), formatMinutes(bed));
   }
 
   /**
@@ -313,7 +315,7 @@
       ? SunCalc.getTimes(new Date(), location.lat, location.lon)
       : null;
     Clock24.setDialOffset(computeDialOffset(times));
-    renderLouisLines();
+    renderWakeSleepLines();
 
     if (!location) {
       renderNeutral();
@@ -375,7 +377,11 @@
     setWakeBed: function (wake, bed) {
       wakeTime = wake;
       bedTime = bed;
-      if (orientation === 'louis') refresh();
+      if (orientation === 'louis' || showWakeSleep) refresh();
+    },
+    setShowWakeSleep: function (show) {
+      showWakeSleep = !!show;
+      refresh();
     },
     refresh: refresh
   };

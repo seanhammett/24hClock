@@ -259,6 +259,16 @@ body.no-transition .sidebar-toggle {
   gap: 6px;
 }
 
+.coord-row {
+  display: flex;
+  gap: 10px;
+}
+
+.coord-row .field {
+  flex: 1;
+  min-width: 0;
+}
+
 .place-row select {
   flex: 1;
   min-width: 0;
@@ -355,19 +365,19 @@ body.no-transition .sidebar-toggle {
   color: var(--text-dim);
 }
 
-.louis-times {
+.wake-times {
   display: flex;
   gap: 10px;
   margin: 2px 0 12px 23px;
 }
 
-.louis-times .field {
+.wake-times .field {
   flex: 1;
   min-width: 0;
   margin-bottom: 0;
 }
 
-.louis-times[hidden] {
+.wake-times[hidden] {
   display: none;
 }
 

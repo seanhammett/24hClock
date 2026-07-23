@@ -40,7 +40,7 @@
            glyph. daynight.js sets the group fills. -->
       <g id="numerals-day" clip-path="url(#clip-day)"></g>
       <g id="numerals-night" clip-path="url(#clip-night)"></g>
-      <!-- Louis XIV wake/sleep lines: over the day/night fill, under the hands -->
+      <!-- Wake/sleep lines: over the day/night fill, under the hands -->
       <g id="wake-sleep-lines"></g>
       <g id="hand-hour">
         <line x1="220" y1="238" x2="220" y2="128" stroke="#1c2742" stroke-width="9" stroke-linecap="round"></line>
@@ -93,20 +93,21 @@
     <p class="hint">Enter coordinates to shade the clock face by daylight at your location.</p>
 
     <div class="field">
-      <label for="place-select">Place</label>
       <div class="place-row">
-        <select id="place-select"></select>
+        <select id="place-select" aria-label="Place"></select>
         <button id="fav-toggle" class="fav-toggle" type="button" aria-pressed="false" title="Add to favorites" disabled>&#9734;</button>
       </div>
     </div>
 
-    <div class="field">
-      <label for="lat-input">Latitude</label>
-      <input type="number" id="lat-input" min="-90" max="90" step="any" placeholder="e.g. 48.8566" inputmode="decimal">
-    </div>
-    <div class="field">
-      <label for="lon-input">Longitude</label>
-      <input type="number" id="lon-input" min="-180" max="180" step="any" placeholder="e.g. 2.3522" inputmode="decimal">
+    <div class="coord-row">
+      <div class="field">
+        <label for="lat-input">Latitude</label>
+        <input type="number" id="lat-input" min="-90" max="90" step="any" placeholder="48.8566" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="lon-input">Longitude</label>
+        <input type="number" id="lon-input" min="-180" max="180" step="any" placeholder="2.3522" inputmode="decimal">
+      </div>
     </div>
     <p id="input-error" class="error" role="alert" hidden></p>
 
@@ -133,7 +134,27 @@
           <input type="radio" name="orientation" id="orient-louis" value="louis">
           Louis&nbsp;XIV
         </label>
-        <div id="louis-times" class="louis-times" hidden>
+      </fieldset>
+      <fieldset class="option-group">
+        <legend>Clock face</legend>
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-minute" checked>
+          Show minute hand
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-minute-marks">
+          Show minute markers
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-second" checked>
+          Show second hand
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-wake-sleep">
+          Show wake / sleep times
+        </label>
+        <!-- Also shown for Louis XIV, which needs the window to orient the dial. -->
+        <div id="wake-times" class="wake-times" hidden>
           <div class="field">
             <label for="wake-input">Wake up</label>
             <input type="time" id="wake-input" value="07:00">
@@ -144,22 +165,13 @@
           </div>
         </div>
       </fieldset>
-      <label class="checkbox-label">
-        <input type="checkbox" id="show-minute" checked>
-        Show minute hand
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="show-second" checked>
-        Show second hand
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="show-minute-marks">
-        Show minute markers
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="override-newtab">
-        Show the clock in every new tab
-      </label>
+      <fieldset class="option-group">
+        <legend>General</legend>
+        <label class="checkbox-label">
+          <input type="checkbox" id="override-newtab">
+          Show the clock in every new tab
+        </label>
+      </fieldset>
     </div>
 
     <p class="footnote">The clock shows the local time at the selected place. For custom coordinates the timezone is estimated from the longitude (whole hours, no daylight-saving adjustment).</p>
@@ -167,6 +179,7 @@
 
   <script src="js/suncalc.js"></script>
   <script src="js/cities.js"></script>
+  <script src="js/tz-lookup.js"></script>
   <script src="js/clock.js"></script>
   <script src="js/daynight.js"></script>
   <script src="js/sidebar.js"></script>
