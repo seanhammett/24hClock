@@ -249,7 +249,6 @@
 
   var hourHand = document.getElementById('hand-hour');
   var nowMarker = document.getElementById('now-marker');
-  var markerInDay = null; // null so the first frame always sets the class
   var minuteHand = document.getElementById('hand-minute');
   var secondHand = document.getElementById('hand-second');
   var sunIcon = document.getElementById('sun-icon');
@@ -296,19 +295,8 @@
     var trueAngle = timeToAngle(now);
     var hourAngle = displayAngle(trueAngle);
     rotate(hourHand, hourAngle);
-    // Same angle as the hour hand, so the rim mark always lines up with it.
+    // Same angle as the hour hand, so the mark always lines up with it.
     rotate(nowMarker, hourAngle);
-
-    // The marker flips whole at sunrise and sunset rather than being clipped
-    // by the boundary, so it is never drawn half in one colour and half in the
-    // other. The daylight span is kept in unrotated angles, so ask in those.
-    if (window.DayNight) {
-      var inDay = window.DayNight.isDaylightAt(trueAngle);
-      if (inDay !== markerInDay) {
-        markerInDay = inDay;
-        nowMarker.classList.toggle('on-day', inDay);
-      }
-    }
 
     // Translate rather than rotate the icons so the crescent stays upright.
     var tip = angleToPoint(hourAngle, iconRadius);

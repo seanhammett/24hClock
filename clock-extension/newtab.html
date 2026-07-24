@@ -34,10 +34,10 @@
       <circle id="face-base" cx="220" cy="220" r="180" fill="#12233f"></circle>
       <path id="day-wedge" d="" fill="#f4f1e8" visibility="hidden"></path>
       <g id="sun-markers"></g>
-      <!-- Current time, marked on the rim in the same style as sunrise and
-           sunset. Rotated by clock.js with the hour hand it echoes. -->
+      <!-- Current time, marked just outside the rim. Rotated by clock.js with
+           the hour hand it echoes. -->
       <g id="now-marker">
-        <circle cx="220" cy="49" r="5" class="now-marker"></circle>
+        <circle cx="220" cy="34" r="3" class="now-marker"></circle>
       </g>
       <g id="minute-ticks"></g>
       <g id="ticks"></g>
@@ -98,7 +98,6 @@
 
   <aside id="sidebar" class="sidebar" aria-label="Location settings">
     <h1>Location</h1>
-    <p class="hint">Enter coordinates to shade the clock face by daylight at your location.</p>
 
     <div class="field">
       <div class="place-row">
@@ -120,9 +119,10 @@
     <p id="input-error" class="error" role="alert" hidden></p>
 
     <div id="sun-times" class="sun-times" hidden>
-      <h2>Today</h2>
-      <p><span class="sun-label">Sunrise</span> <span id="sunrise-time">–</span></p>
-      <p><span class="sun-label">Sunset</span> <span id="sunset-time">–</span></p>
+      <p class="sun-times-line">
+        <span><span class="sun-label">Sunrise</span> <span id="sunrise-time">–</span></span>
+        <span><span id="sunset-time">–</span> <span class="sun-label">Sunset</span></span>
+      </p>
       <p id="polar-note" class="polar-note" hidden></p>
     </div>
 
@@ -187,8 +187,6 @@
         </label>
       </fieldset>
     </div>
-
-    <p class="footnote">The clock shows the local time at the selected place. For custom coordinates the timezone is looked up from the coordinates; if that fails it is estimated from the longitude (whole hours, no daylight-saving adjustment).</p>
   </aside>
 
   <script src="js/suncalc.js"></script>

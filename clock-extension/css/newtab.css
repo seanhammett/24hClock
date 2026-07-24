@@ -89,18 +89,12 @@ body {
   stroke-linecap: round;
 }
 
-/* Rides the hour-tick band, filling it edge to edge, in the hour hand's
-   colours: white on the night fill, inverting to the dark fill on the cream
-   daylight wedge. Neither needs an outline — each is already the opposite of
-   what it sits on. clock.js flips the class the moment the marker passes
-   sunrise or sunset. */
+/* A small white dot just outside the rim, marking the current time. It sits
+   on the page background rather than the face, so it stays one colour and
+   needs no outline or day/night flip. */
 .now-marker {
-  fill: #f4f1e8;
+  fill: #fff;
   stroke: none;
-}
-
-#now-marker.on-day .now-marker {
-  fill: #1c2742;
 }
 
 .sun-marker-label {
@@ -255,12 +249,6 @@ body.no-transition .sidebar-toggle {
   color: var(--text-dim);
 }
 
-.hint {
-  margin: 0 0 20px;
-  font-size: 0.85rem;
-  color: var(--text-dim);
-}
-
 .field {
   margin-bottom: 14px;
 }
@@ -350,7 +338,7 @@ body.no-transition .sidebar-toggle {
 }
 
 .sun-times {
-  margin-top: 24px;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--panel-border);
 }
@@ -363,6 +351,12 @@ body.no-transition .sidebar-toggle {
   font-variant-numeric: tabular-nums;
 }
 
+.sun-times-line > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .sun-label {
   color: var(--text-dim);
 }
@@ -373,7 +367,7 @@ body.no-transition .sidebar-toggle {
 }
 
 .options {
-  margin-top: 24px;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--panel-border);
 }
@@ -442,13 +436,6 @@ body.no-transition .sidebar-toggle {
 .checkbox-label input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
-}
-
-.footnote {
-  margin-top: 24px;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--text-dim);
 }
 
 /* ---- Sidebar toggle -------------------------------------------------- */
