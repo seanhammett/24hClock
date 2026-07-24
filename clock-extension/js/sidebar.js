@@ -441,6 +441,28 @@
     STORAGE_KEYS.showSubhourTicks,
     STORAGE_KEYS.showWakeSleep
   ], function (items) {
+    // First run: nothing has ever been saved, so both storage backends hand
+    // back an empty object. Seed a worked example rather than the bare neutral
+    // face, so a new user lands on something that shows off what the clock does
+    // — and persist it, so their first tweak edits these rather than starting over.
+    if (Object.keys(items).length === 0) {
+      items = {};
+      items[STORAGE_KEYS.location] = {
+        lat: 43.2965, lon: 5.3698, place: 'marseille',
+        tz: { type: 'iana', name: 'Europe/Paris' }
+      };
+      items[STORAGE_KEYS.collapsed] = false;      // sidebar open
+      items[STORAGE_KEYS.orientation] = 'centered';
+      items[STORAGE_KEYS.wakeTime] = '07:20';
+      items[STORAGE_KEYS.bedTime] = '23:40';
+      items[STORAGE_KEYS.showMinute] = true;
+      items[STORAGE_KEYS.showSecond] = true;
+      items[STORAGE_KEYS.showMinuteMarks] = false; // the one thing left off
+      items[STORAGE_KEYS.showSubhourTicks] = true;
+      items[STORAGE_KEYS.showWakeSleep] = true;
+      storage.set(items);
+    }
+
     overrideNewTab.checked = items[STORAGE_KEYS.overrideNewTabs] === true;
     // If the user revoked the tabs permission externally, reflect reality.
     if (overrideNewTab.checked && permissionsApi) {
