@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>24-Hour Clock</title>
   <link rel="stylesheet" href="css/newtab.css">
+  <!-- Before the first paint, so an overridden theme never flashes the other
+       one on the way in. See js/theme.js. -->
+  <script src="js/theme.js"></script>
 </head>
 <body>
   <main class="clock-area">
@@ -179,13 +182,22 @@
           </div>
         </div>
       </fieldset>
-      <fieldset class="option-group">
-        <legend>General</legend>
+      <!-- A plain div, not a fieldset: with no legend there is no group name to
+           give, and both controls below already carry their own label. -->
+      <div class="option-group">
+        <div class="field">
+          <label for="theme-select">Appearance</label>
+          <select id="theme-select">
+            <option value="system">Match browser</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
         <label class="checkbox-label">
           <input type="checkbox" id="override-newtab">
           Show the clock in every new tab
         </label>
-      </fieldset>
+      </div>
     </div>
   </aside>
 

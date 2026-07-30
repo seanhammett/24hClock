@@ -18,7 +18,8 @@
     showSecond: 'showSecondHand',
     showMinuteMarks: 'showMinuteMarks',
     showSubhourTicks: 'showSubhourTicks',
-    showWakeSleep: 'showWakeSleep'
+    showWakeSleep: 'showWakeSleep',
+    theme: 'theme'
   };
 
   var PLACES = window.CITIES.slice().sort(function (a, b) {
@@ -117,6 +118,17 @@
         storage.set(makeEntry(STORAGE_KEYS.overrideNewTabs, false));
       }
     });
+  });
+
+  // ---- Appearance --------------------------------------------------------
+  // theme.js has already painted from its own fast-path copy; this is the
+  // canonical setting, so it persists the choice and hands it back to theme.js
+  // to apply and re-cache.
+
+  var themeSelect = document.getElementById('theme-select');
+
+  themeSelect.addEventListener('change', function () {
+    storage.set(makeEntry(STORAGE_KEYS.theme, window.Theme.set(themeSelect.value)));
   });
 
   // ---- Orientation + hand visibility -------------------------------------
@@ -439,7 +451,8 @@
     STORAGE_KEYS.showSecond,
     STORAGE_KEYS.showMinuteMarks,
     STORAGE_KEYS.showSubhourTicks,
-    STORAGE_KEYS.showWakeSleep
+    STORAGE_KEYS.showWakeSleep,
+    STORAGE_KEYS.theme
   ], function (items) {
     // First run: nothing has ever been saved, so both storage backends hand
     // back an empty object. Seed a worked example rather than the bare neutral
@@ -460,8 +473,15 @@
       items[STORAGE_KEYS.showMinuteMarks] = false; // the one thing left off
       items[STORAGE_KEYS.showSubhourTicks] = true;
       items[STORAGE_KEYS.showWakeSleep] = true;
+      items[STORAGE_KEYS.theme] = 'system'; // follow Chrome until told otherwise
       storage.set(items);
     }
+
+    // Saves from before this option, and anything unrecognised, follow Chrome.
+    // theme.js has already painted from its cache, but this is the copy that
+    // decides: re-applying repairs the page if the cache was cleared or fell
+    // out of step, and leaves the two agreeing again.
+    themeSelect.value = window.Theme.set(items[STORAGE_KEYS.theme]);
 
     overrideNewTab.checked = items[STORAGE_KEYS.overrideNewTabs] === true;
     // If the user revoked the tabs permission externally, reflect reality.

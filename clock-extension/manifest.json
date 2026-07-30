@@ -10,6 +10,7 @@
     "service_worker": "js/background.js"
   },
   "permissions": ["storage"],
+  "minimum_chrome_version": "123",
   "optional_permissions": ["tabs"],
   "icons": {
     "16": "icons/icon16.png",

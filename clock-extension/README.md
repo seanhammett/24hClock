@@ -56,6 +56,11 @@ no data.
   and quarter-hour ticks on the hour ring can be turned off to leave just the
   hours. With the minute hand hidden the hour hand reaches further out, taking
   the room it no longer has to leave clear.
+- The page around the clock is light or dark to match Chrome's own setting, and
+  follows it live if that changes. "Appearance" overrides it with a fixed Light
+  or Dark if you would rather it not. The face itself does not change either
+  way: its cream daylight and navy night are the reading the clock is there to
+  give, not a colour scheme.
 
 Sunrise/sunset is computed locally with the vendored [SunCalc](https://github.com/mourner/suncalc)
 library (MIT) — the extension makes no network requests. The interface is set
