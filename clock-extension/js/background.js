@@ -8,7 +8,7 @@
 'use strict';
 
 var OVERRIDE_KEY = 'overrideNewTabs';
-var CLOCK_URL = chrome.runtime.getURL('newtab.html');
+var CLOCK_URL = chrome.runtime.getURL('index.html');
 
 chrome.action.onClicked.addListener(function () {
   chrome.tabs.create({ url: CLOCK_URL });

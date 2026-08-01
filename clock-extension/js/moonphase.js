@@ -9,7 +9,7 @@
 (function () {
   'use strict';
 
-  var R = 15; // must match the moon icon's discs in newtab.html
+  var R = 15; // must match the moon icon's discs in index.html
 
   // A moon within a couple of days of new is almost entirely dark, which reads
   // as a plain circle rather than a moon. Hold the lit face at a thin sliver

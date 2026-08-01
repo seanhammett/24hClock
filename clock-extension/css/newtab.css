@@ -454,6 +454,11 @@ body.no-transition .sidebar-toggle {
   cursor: pointer;
 }
 
+/* display: flex above would otherwise beat the UA rule for [hidden]. */
+.checkbox-label[hidden] {
+  display: none;
+}
+
 .checkbox-sub {
   margin-left: 23px;
 }

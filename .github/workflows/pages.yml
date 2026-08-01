@@ -1,0 +1,36 @@
+# Publishes the clock as a plain website to GitHub Pages.
+#
+# The extension folder is served verbatim, so the site and the extension are
+# the same files and cannot drift apart. manifest.json and js/background.js go
+# along for the ride; the page never loads either one.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a run in progress finish rather than cancelling it mid-deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: clock-extension
+      - id: deployment
+        uses: actions/deploy-pages@v4

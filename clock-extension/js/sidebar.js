@@ -98,6 +98,14 @@
   // installs with no permission warnings.
   var permissionsApi = (typeof chrome !== 'undefined' && chrome.permissions) || null;
 
+  // The same page is also served as a plain website, where there is no service
+  // worker to honour the flag and no new tab to take over, so the option is
+  // hidden rather than offered and left doing nothing. Everything below still
+  // runs against the hidden checkbox, which keeps the two builds identical.
+  if (!(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id)) {
+    overrideNewTab.closest('.checkbox-label').hidden = true;
+  }
+
   overrideNewTab.addEventListener('change', function () {
     if (!overrideNewTab.checked) {
       storage.set(makeEntry(STORAGE_KEYS.overrideNewTabs, false));
