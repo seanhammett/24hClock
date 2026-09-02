@@ -489,9 +489,13 @@
     return 'rotate(' + angle.toFixed(3) + ' ' + C + ' ' + C + ')';
   }
 
+  function norm360(angle) {
+    return ((angle % 360) + 360) % 360;
+  }
+
   /** Past the six o'clock line a name would run backwards, so it is turned. */
   function isFlipped(angle) {
-    return (((angle % 360) + 360) % 360) > 180;
+    return norm360(angle) > 180;
   }
 
   function makeLabel(text) {
@@ -679,7 +683,11 @@
     if (!live) return;
     if (active) {
       for (var i = 0; i < drawn.length; i++) {
-        var angle = Clock24.displayAngle(hourAngle + drawn[i].delta);
+        // The angle handed over has the dial's own rotation in it already, so
+        // this adds only the hand's offset from the main one. Putting it back
+        // through displayAngle would turn the extra hands by the dial offset a
+        // second time — which does nothing at all with 12 noon at top.
+        var angle = norm360(hourAngle + drawn[i].delta);
         if (isFlipped(angle) !== drawn[i].flipped) { renderHands(); return; }
         drawn[i].el.setAttribute('transform', rotation(angle));
       }
