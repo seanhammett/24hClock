@@ -1,7 +1,11 @@
 /*
- * sidebar.js — collapsible settings panel: lat/lon inputs with validation,
- * debounced persistence to chrome.storage.local, and display of the
+ * sidebar.js — the sidebar shell (two tabs, collapse) and the Options panel:
+ * lat/lon inputs with validation, debounced persistence, and display of the
  * computed sun times published by daynight.js.
+ *
+ * While the simulator is driving the face it owns the clock, so the settings
+ * here that it overrides — location, orientation, wake/sleep — are kept as
+ * live values and only pushed once it hands the face back.
  */
 (function () {
   'use strict';
@@ -9,6 +13,7 @@
   var STORAGE_KEYS = {
     location: 'location',
     collapsed: 'sidebarCollapsed',
+    activeTab: 'activeTab',
     favorites: 'favorites',
     overrideNewTabs: 'overrideNewTabs',
     orientation: 'orientation',
@@ -22,66 +27,18 @@
     theme: 'theme'
   };
 
-  var PLACES = window.CITIES.slice().sort(function (a, b) {
-    return a.label.localeCompare(b.label);
-  });
+  var Places = window.Places;
+  var findPlace = Places.find;
+  var zoneForCoords = Places.zoneForCoords;
 
-  var DEFAULT_FAVORITES = ['marseille', 'landevieille', 'london', 'sonoma', 'capetown', 'utqiagvik', 'mcmurdo'];
-  var favorites = DEFAULT_FAVORITES.slice();
+  var storage = window.Store;
+  var makeEntry = window.Store.entry;
 
-  function findPlace(id) {
-    for (var i = 0; i < PLACES.length; i++) {
-      if (PLACES[i].id === id) return PLACES[i];
-    }
-    return null;
+  /** Is the simulator currently driving the face? */
+  function simulating() {
+    return !!(window.Simulator && window.Simulator.isActive());
   }
 
-  /** Last-resort timezone for custom coordinates: whole-hour offset from longitude. */
-  function zoneFromLongitude(lon) {
-    return { type: 'offset', minutes: Math.round(lon / 15) * 60 };
-  }
-
-  /**
-   * Timezone for arbitrary coordinates. tz-lookup gives a real IANA zone
-   * (so DST and half-hour offsets come out right); the longitude offset is
-   * kept as a fallback for a name this browser's Intl cannot resolve.
-   */
-  function zoneForCoords(lat, lon) {
-    if (typeof tzlookup === 'function') {
-      try {
-        var name = tzlookup(lat, lon);
-        new Intl.DateTimeFormat('en-US', { timeZone: name }); // throws if unknown
-        return { type: 'iana', name: name };
-      } catch (e) { /* fall through */ }
-    }
-    return zoneFromLongitude(lon);
-  }
-
-  // chrome.storage.local in the extension; localStorage fallback so the
-  // page still works when opened as a plain file during development.
-  var storage = (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local)
-    ? {
-        get: function (keys, cb) { chrome.storage.local.get(keys, cb); },
-        set: function (obj) { chrome.storage.local.set(obj); }
-      }
-    : {
-        get: function (keys, cb) {
-          var out = {};
-          keys.forEach(function (k) {
-            var raw = localStorage.getItem(k);
-            if (raw !== null) out[k] = JSON.parse(raw);
-          });
-          cb(out);
-        },
-        set: function (obj) {
-          Object.keys(obj).forEach(function (k) {
-            localStorage.setItem(k, JSON.stringify(obj[k]));
-          });
-        }
-      };
-
-  var sidebar = document.getElementById('sidebar');
-  var toggle = document.getElementById('sidebar-toggle');
   var placeSelect = document.getElementById('place-select');
   var latInput = document.getElementById('lat-input');
   var lonInput = document.getElementById('lon-input');
@@ -164,9 +121,10 @@
 
   function onOrientationChange() {
     var mode = currentOrientation();
+    liveOrientation = mode;
     storage.set(makeEntry(STORAGE_KEYS.orientation, mode));
     updateWakeTimesVisibility();
-    window.DayNight.setOrientation(mode);
+    if (!simulating()) window.DayNight.setOrientation(mode);
   }
 
   orientNoon.addEventListener('change', onOrientationChange);
@@ -174,20 +132,23 @@
   orientLouis.addEventListener('change', onOrientationChange);
 
   function onWakeBedChange() {
+    liveWake = wakeInput.value;
+    liveBed = bedInput.value;
     var entry = {};
-    entry[STORAGE_KEYS.wakeTime] = wakeInput.value;
-    entry[STORAGE_KEYS.bedTime] = bedInput.value;
+    entry[STORAGE_KEYS.wakeTime] = liveWake;
+    entry[STORAGE_KEYS.bedTime] = liveBed;
     storage.set(entry);
-    window.DayNight.setWakeBed(wakeInput.value, bedInput.value);
+    if (!simulating()) window.DayNight.setWakeBed(liveWake, liveBed);
   }
 
   wakeInput.addEventListener('change', onWakeBedChange);
   bedInput.addEventListener('change', onWakeBedChange);
 
   showWakeSleep.addEventListener('change', function () {
-    storage.set(makeEntry(STORAGE_KEYS.showWakeSleep, showWakeSleep.checked));
+    liveShowWakeSleep = showWakeSleep.checked;
+    storage.set(makeEntry(STORAGE_KEYS.showWakeSleep, liveShowWakeSleep));
     updateWakeTimesVisibility();
-    window.DayNight.setShowWakeSleep(showWakeSleep.checked);
+    if (!simulating()) window.DayNight.setShowWakeSleep(liveShowWakeSleep);
   });
 
   var showMinuteMarks = document.getElementById('show-minute-marks');
@@ -205,6 +166,9 @@
     // Nothing to keep clear of once the minute hand is off, so the hour hand
     // and the sun/moon it carries take the extra room.
     window.Clock24.setHourHandExtended(!showMinute.checked);
+    // The sun and moon have just moved along the hand, and the simulator's
+    // name for the main location has to stay clear of them.
+    if (window.Simulator) window.Simulator.render();
   }
 
   showMinute.addEventListener('change', function () {
@@ -233,70 +197,71 @@
     applySubhourTicks();
   });
 
-  // ---- Collapse / expand ------------------------------------------------
+  // ---- Tabs, collapse / expand ------------------------------------------
+
+  var tabs = {
+    options: document.getElementById('tab-options'),
+    sim: document.getElementById('tab-sim')
+  };
+  var panels = {
+    options: document.getElementById('panel-options'),
+    sim: document.getElementById('panel-sim')
+  };
+  var activeTab = 'options';
 
   function setCollapsed(collapsed, persist) {
     document.body.classList.toggle('sidebar-collapsed', collapsed);
-    toggle.setAttribute('aria-expanded', String(!collapsed));
+    Object.keys(tabs).forEach(function (name) {
+      tabs[name].setAttribute('aria-expanded', String(!collapsed));
+    });
     if (persist) {
       storage.set(makeEntry(STORAGE_KEYS.collapsed, collapsed));
     }
   }
 
-  function makeEntry(key, value) {
-    var obj = {};
-    obj[key] = value;
-    return obj;
+  function setActiveTab(name, persist) {
+    activeTab = panels[name] ? name : 'options';
+    Object.keys(panels).forEach(function (key) {
+      var on = key === activeTab;
+      panels[key].hidden = !on;
+      tabs[key].setAttribute('aria-selected', String(on));
+      tabs[key].classList.toggle('is-active', on);
+    });
+    if (persist) {
+      storage.set(makeEntry(STORAGE_KEYS.activeTab, activeTab));
+    }
+    // Favorites can have changed in the other panel since this one last drew.
+    if (activeTab === 'sim' && window.Simulator) window.Simulator.onShown();
   }
 
-  toggle.addEventListener('click', function () {
-    var collapsed = !document.body.classList.contains('sidebar-collapsed');
-    setCollapsed(collapsed, true);
+  /** A tab opens its panel; clicking the one already open closes the sidebar. */
+  function onTabClick(name) {
+    var collapsed = document.body.classList.contains('sidebar-collapsed');
+    if (!collapsed && activeTab === name) {
+      setCollapsed(true, true);
+      return;
+    }
+    setActiveTab(name, true);
+    if (collapsed) setCollapsed(false, true);
+  }
+
+  Object.keys(tabs).forEach(function (name) {
+    tabs[name].addEventListener('click', function () { onTabClick(name); });
   });
 
   // ---- Places dropdown + favorites ---------------------------------------
 
   var favToggle = document.getElementById('fav-toggle');
 
-  function isFavorite(id) {
-    return favorites.indexOf(id) !== -1;
-  }
-
-  /** Rebuild the select: Custom, then Favorites, then the remaining cities. */
   function buildPlaceOptions(selectedValue) {
-    while (placeSelect.firstChild) {
-      placeSelect.removeChild(placeSelect.firstChild);
-    }
-
-    var custom = document.createElement('option');
-    custom.value = 'custom';
-    custom.textContent = 'Custom coordinates…';
-    placeSelect.appendChild(custom);
-
-    function addGroup(label, places) {
-      if (!places.length) return;
-      var group = document.createElement('optgroup');
-      group.label = label;
-      places.forEach(function (place) {
-        var opt = document.createElement('option');
-        opt.value = place.id;
-        opt.textContent = place.label;
-        group.appendChild(opt);
-      });
-      placeSelect.appendChild(group);
-    }
-
-    addGroup('★ Favorites', PLACES.filter(function (p) { return isFavorite(p.id); }));
-    addGroup('All cities', PLACES.filter(function (p) { return !isFavorite(p.id); }));
-
-    placeSelect.value = selectedValue || 'custom';
+    Places.fillPlaceSelect(placeSelect, selectedValue);
     updateFavToggle();
   }
 
   function updateFavToggle() {
     var id = placeSelect.value;
     var isPlace = !!findPlace(id);
-    var fav = isPlace && isFavorite(id);
+    var fav = isPlace && Places.isFavorite(id);
     favToggle.disabled = !isPlace;
     favToggle.textContent = fav ? '★' : '☆'; // ★ / ☆
     favToggle.classList.toggle('is-fav', fav);
@@ -307,37 +272,53 @@
   favToggle.addEventListener('click', function () {
     var id = placeSelect.value;
     if (!findPlace(id)) return;
-    var idx = favorites.indexOf(id);
-    if (idx === -1) {
-      favorites.push(id);
-    } else {
-      favorites.splice(idx, 1);
-    }
-    storage.set(makeEntry(STORAGE_KEYS.favorites, favorites));
+    Places.toggleFavorite(id);
+    storage.set(makeEntry(STORAGE_KEYS.favorites, Places.getFavorites()));
     buildPlaceOptions(id); // keep the current city selected
   });
 
   var locationReadout = document.getElementById('location-readout');
 
-  function formatCoords(lat, lon) {
-    return Math.abs(lat).toFixed(4) + '°' + (lat >= 0 ? 'N' : 'S') +
-      ', ' + Math.abs(lon).toFixed(4) + '°' + (lon >= 0 ? 'E' : 'W');
+  /** How a location reads under the clock: the city if it is one, else coords. */
+  function describeLocation(loc) {
+    var place = findPlace(loc.place);
+    var coords = Places.formatCoords(loc.lat, loc.lon);
+    return place ? place.label + ' (' + coords + ')' : coords;
+  }
+
+  // ---- Live state ---------------------------------------------------------
+  // What the Options panel would have the clock show. The simulator borrows
+  // the face and overrides all four, so while it is active these are only
+  // recorded and persisted; restoreLiveState puts them back when it is done.
+
+  var liveLocation = null;
+  var liveOrientation = 'noon';
+  var liveShowWakeSleep = false;
+  var liveWake = '07:00';
+  var liveBed = '23:00';
+
+  function pushLiveLocation() {
+    window.Clock24.setTimeZone(liveLocation ? liveLocation.tz : null);
+    window.DayNight.setLocation(liveLocation
+      ? { lat: liveLocation.lat, lon: liveLocation.lon }
+      : null);
+    locationReadout.textContent = liveLocation ? describeLocation(liveLocation) : '';
   }
 
   /** Point the clock and shading at a location (or null to clear). */
   function applyLocation(loc) {
-    window.Clock24.setTimeZone(loc ? loc.tz : null);
-    window.DayNight.setLocation(loc ? { lat: loc.lat, lon: loc.lon } : null);
-    if (!loc) {
-      locationReadout.textContent = '';
-    } else {
-      var place = findPlace(loc.place);
-      var coords = formatCoords(loc.lat, loc.lon);
-      locationReadout.textContent = place
-        ? place.label + ' (' + coords + ')'
-        : coords;
-    }
+    liveLocation = loc || null;
+    if (!simulating()) pushLiveLocation();
   }
+
+  function restoreLiveState() {
+    window.DayNight.setWakeBed(liveWake, liveBed);
+    window.DayNight.setShowWakeSleep(liveShowWakeSleep);
+    window.DayNight.setOrientation(liveOrientation);
+    pushLiveLocation();
+  }
+
+  window.Sidebar = { restoreLiveState: restoreLiveState };
 
   placeSelect.addEventListener('change', function () {
     updateFavToggle();
@@ -420,8 +401,10 @@
 
   // ---- Sun-times display -------------------------------------------------
 
+  /** The sun times arrive already zoned, carrying their wall clock in UTC. */
   function formatTime(date) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([],
+      { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
   }
 
   document.addEventListener('daynight:updated', function (e) {
@@ -450,6 +433,7 @@
   storage.get([
     STORAGE_KEYS.location,
     STORAGE_KEYS.collapsed,
+    STORAGE_KEYS.activeTab,
     STORAGE_KEYS.favorites,
     STORAGE_KEYS.overrideNewTabs,
     STORAGE_KEYS.orientation,
@@ -520,8 +504,13 @@
     if (typeof items[STORAGE_KEYS.bedTime] === 'string') {
       bedInput.value = items[STORAGE_KEYS.bedTime];
     }
-    window.DayNight.setWakeBed(wakeInput.value, bedInput.value);
-    window.DayNight.setShowWakeSleep(showWakeSleep.checked);
+    // The simulator is never active this early, so these apply straight away.
+    liveOrientation = mode;
+    liveShowWakeSleep = showWakeSleep.checked;
+    liveWake = wakeInput.value;
+    liveBed = bedInput.value;
+    window.DayNight.setWakeBed(liveWake, liveBed);
+    window.DayNight.setShowWakeSleep(liveShowWakeSleep);
     window.DayNight.setOrientation(mode);
 
     showMinute.checked = items[STORAGE_KEYS.showMinute] !== false;
@@ -532,17 +521,16 @@
     applySubhourTicks();
     // Restore without animating: state should appear settled on load.
     document.body.classList.add('no-transition');
+    // The simulator is never on at load, so the Options tab is the one that
+    // can be resumed into; anything else falls back to it.
+    setActiveTab(items[STORAGE_KEYS.activeTab], false);
     // Default to expanded on first run so the location inputs are discoverable.
     setCollapsed(items[STORAGE_KEYS.collapsed] === true, false);
     requestAnimationFrame(function () {
       document.body.classList.remove('no-transition');
     });
 
-    if (Array.isArray(items[STORAGE_KEYS.favorites])) {
-      favorites = items[STORAGE_KEYS.favorites].filter(function (id) {
-        return !!findPlace(id);
-      });
-    }
+    Places.setFavorites(items[STORAGE_KEYS.favorites]);
 
     var loc = items[STORAGE_KEYS.location];
     var selected = 'custom';

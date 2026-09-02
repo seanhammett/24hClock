@@ -112,7 +112,9 @@ window.CITIES = [
   { id: 'seattle', label: 'Seattle, WA, USA', lat: 47.6062, lon: -122.3321, tz: 'America/Los_Angeles' },
   { id: 'sonoma', label: 'Sonoma, CA, USA', lat: 38.2919, lon: -122.4580, tz: 'America/Los_Angeles' },
   { id: 'toronto', label: 'Toronto, Canada', lat: 43.6532, lon: -79.3832, tz: 'America/Toronto' },
-  { id: 'utqiaġvik', label: 'Utqiaġvik, AK, USA', lat: 71.2906, lon: -156.7886, tz: 'America/Anchorage' },
+  // Plain-ASCII id: the accented one never matched the default favorites list,
+  // so it was silently dropped. The accent stays where it is read, in label.
+  { id: 'utqiagvik', label: 'Utqiaġvik, AK, USA', lat: 71.2906, lon: -156.7886, tz: 'America/Anchorage' },
   { id: 'vancouver', label: 'Vancouver, Canada', lat: 49.2827, lon: -123.1207, tz: 'America/Vancouver' },
   { id: 'washington', label: 'Washington, DC, USA', lat: 38.9072, lon: -77.0369, tz: 'America/New_York' },
 

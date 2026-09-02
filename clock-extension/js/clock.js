@@ -14,58 +14,114 @@
   // (exact, DST-aware — from cities.js, or from tz-lookup for custom
   // coordinates) or { type: 'offset', minutes: 120 } (approximated from
   // longitude, only if the lookup fails), or null for the browser's zone.
+  //
+  // A spec is wrapped in a zone — the spec plus its Intl formatter, which is
+  // the expensive half — so the simulator can hold a dozen of them open at
+  // once. The dial itself still has exactly one primary zone: the one the
+  // hands, the wedge and the readouts all read.
 
-  var zoneSpec = null;
-  var zoneFormatter = null;
-
-  function setTimeZone(spec) {
-    zoneSpec = spec || null;
-    zoneFormatter = null;
-    if (zoneSpec && zoneSpec.type === 'iana') {
-      zoneFormatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: zoneSpec.name,
+  function makeZone(spec) {
+    if (!spec) return null;
+    if (spec.type !== 'iana') return { spec: spec, formatter: null };
+    return {
+      spec: spec,
+      formatter: new Intl.DateTimeFormat('en-US', {
+        timeZone: spec.name,
         year: 'numeric', month: 'numeric', day: 'numeric',
         hour: 'numeric', minute: 'numeric', second: 'numeric',
         hourCycle: 'h23'
-      });
-    }
+      })
+    };
+  }
+
+  var primaryZone = null;
+
+  function setTimeZone(spec) {
+    primaryZone = makeZone(spec);
   }
 
   /**
-   * Convert an absolute Date to a Date whose local getters (getHours, …)
-   * read as wall-clock time in the configured zone. With no zone set,
-   * returns the date unchanged.
+   * Convert an absolute Date to a Date whose *UTC* getters (getUTCHours, …)
+   * read as wall-clock time in the given zone. A null zone means the
+   * browser's own.
+   *
+   * The reading is carried in UTC rather than local time because UTC has no
+   * DST: build it with the local constructor instead and any wall clock that
+   * happens to fall in the *viewer's* own spring-forward gap has no local
+   * instant to sit on, so it silently slides an hour — which would show a
+   * London hand an hour out for anyone watching from Paris on the morning the
+   * clocks go forward. Every reader below uses the UTC getters to match.
    */
-  function toZoned(date) {
-    if (!zoneSpec) return date;
-    if (zoneSpec.type === 'iana') {
+  function toZoneTime(date, zone) {
+    if (!zone) {
+      return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(),
+        date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()));
+    }
+    if (zone.spec.type === 'iana') {
       var p = {};
-      zoneFormatter.formatToParts(date).forEach(function (part) {
+      zone.formatter.formatToParts(date).forEach(function (part) {
         p[part.type] = part.value;
       });
-      return new Date(+p.year, p.month - 1, +p.day, +p.hour, +p.minute,
-        +p.second, date.getMilliseconds());
+      return new Date(Date.UTC(+p.year, p.month - 1, +p.day, +p.hour, +p.minute,
+        +p.second, date.getMilliseconds()));
     }
-    // Fixed offset: shift so local getters read UTC + offset.
-    return new Date(date.getTime() +
-      (zoneSpec.minutes + date.getTimezoneOffset()) * 60000);
+    return new Date(date.getTime() + zone.spec.minutes * 60000);
+  }
+
+  /** The same, in the primary zone — what the dial itself is drawn from. */
+  function toZoned(date) {
+    return toZoneTime(date, primaryZone);
+  }
+
+  /**
+   * How far a zone runs ahead of UTC, in minutes, at a given instant. Read
+   * back out of the wall clock rather than from a table, so DST is included
+   * for free — and so half- and quarter-hour zones come out exact.
+   */
+  function offsetMinutes(zone, date) {
+    return Math.round((toZoneTime(date, zone).getTime() - date.getTime()) / 60000);
+  }
+
+  /**
+   * The inverse of toZoneTime: the absolute instant at which a zone's wall
+   * clock reads this date and time. An offset is only knowable from an
+   * instant, so guess one, correct it by the offset there, then re-read the
+   * offset at the answer and correct again — the second pass is what puts the
+   * hours either side of a DST change on the right instant.
+   */
+  function instantFromWallClock(year, month, day, hour, minute, zone) {
+    var target = Date.UTC(year, month, day, hour, minute);
+    var t = target - offsetMinutes(zone, new Date(target)) * 60000;
+    return target - offsetMinutes(zone, new Date(t)) * 60000;
+  }
+
+  // ---- Time source --------------------------------------------------------
+  // Everything on the page reads the clock through now(), so the simulator can
+  // freeze it at an arbitrary instant simply by handing one over. Nothing here
+  // derives from elapsed time — every frame is computed from `now` alone — so
+  // a frozen or scrubbed clock needs no other change to the loop.
+
+  var simInstant = null; // absolute ms while simulating, else null for live
+
+  function now() {
+    return simInstant === null ? new Date() : new Date(simInstant);
   }
 
   function zonedNow() {
-    return toZoned(new Date());
+    return toZoned(now());
   }
 
   /**
-   * Map a Date's local time of day to a dial angle in degrees clockwise
-   * from 12-o'clock-up. Noon → 0°, midnight → 180°, 06:00 → 270°, 18:00 → 90°.
+   * Map a zoned Date's time of day to a dial angle in degrees clockwise from
+   * 12-o'clock-up. Noon → 0°, midnight → 180°, 06:00 → 270°, 18:00 → 90°.
    * Shared by the hands, the day/night wedge, and the sunrise/sunset markers
-   * so they can never disagree.
+   * so they can never disagree. Reads UTC, the frame toZoneTime hands back.
    */
   function timeToAngle(date) {
-    var dayFraction = (date.getHours() +
-      date.getMinutes() / 60 +
-      date.getSeconds() / 3600 +
-      date.getMilliseconds() / 3600000) / 24;
+    var dayFraction = (date.getUTCHours() +
+      date.getUTCMinutes() / 60 +
+      date.getUTCSeconds() / 3600 +
+      date.getUTCMilliseconds() / 3600000) / 24;
     return (dayFraction * 360 + 180) % 360;
   }
 
@@ -111,7 +167,12 @@
     displayAngle: displayAngle,
     setDialOffset: setDialOffset,
     setTimeZone: setTimeZone,
+    makeZone: makeZone,
+    toZoneTime: toZoneTime,
+    offsetMinutes: offsetMinutes,
+    instantFromWallClock: instantFromWallClock,
     toZoned: toZoned,
+    now: now,
     zonedNow: zonedNow
   };
 
@@ -277,6 +338,13 @@
 
   window.Clock24.setHourHandExtended = setHourHandExtended;
 
+  /** Where the sun/moon rides on the hour hand, so callers can keep clear. */
+  window.Clock24.iconRadius = function () { return iconRadius; };
+
+  /** How far the hour hand reaches, and how far back its tail runs. */
+  window.Clock24.hourTipRadius = function () { return iconRadius + ICON_INSET; };
+  window.Clock24.hourTailRadius = function () { return C - 238; };
+
   var digitalMain = document.getElementById('digital-main');
   var digitalSeconds = document.getElementById('digital-seconds');
   var dateReadout = document.getElementById('date-readout');
@@ -288,6 +356,33 @@
   var lastDateKey = null;
   var lastDigital = '';
   var lastSeconds = -1;
+
+  /** Which day a zoned reading falls on, as a comparable key. */
+  function dateKeyOf(zonedDate) {
+    return zonedDate.toISOString().slice(0, 10);
+  }
+
+  /**
+   * Freeze the clock at an absolute instant, or hand it back to real time with
+   * null. A jump lands on a different date more often than the loop's own
+   * once-a-day check can catch, so re-test it here and forget the last date if
+   * it has moved — that is what makes the next frame redo the sun times, the
+   * moon phase and the date line. Scrubbing within one day changes none of
+   * those, and skipping the repaint there is what keeps a drag cheap.
+   */
+  function setSimulatedInstant(ms) {
+    simInstant = (typeof ms === 'number' && isFinite(ms)) ? ms : null;
+    if (dateKeyOf(zonedNow()) !== lastDateKey) lastDateKey = null;
+  }
+
+  window.Clock24.setSimulatedInstant = setSimulatedInstant;
+
+  // The simulator's extra hands ride this same frame, so they are handed the
+  // angle the hour hand has just been given rather than working out their own
+  // a moment later and landing a frame behind it.
+  var frameHooks = [];
+
+  window.Clock24.onFrame = function (fn) { frameHooks.push(fn); };
 
   function frame() {
     var now = zonedNow();
@@ -304,28 +399,30 @@
     sunIcon.setAttribute('transform', iconAt);
     moonIcon.setAttribute('transform', iconAt);
 
-    rotate(minuteHand, (now.getMinutes() + now.getSeconds() / 60) / 60 * 360);
-    rotate(secondHand, (now.getSeconds() + now.getMilliseconds() / 1000) / 60 * 360);
+    rotate(minuteHand, (now.getUTCMinutes() + now.getUTCSeconds() / 60) / 60 * 360);
+    rotate(secondHand, (now.getUTCSeconds() + now.getUTCMilliseconds() / 1000) / 60 * 360);
 
-    var text = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    var text = now.toLocaleTimeString([],
+      { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
     if (text !== lastDigital) {
       lastDigital = text;
       digitalMain.textContent = text;
     }
 
     // Seconds are a separate, dimmer span so hours and minutes read first
-    var secs = now.getSeconds();
+    var secs = now.getUTCSeconds();
     if (secs !== lastSeconds) {
       lastSeconds = secs;
       digitalSeconds.textContent = ':' + (secs < 10 ? '0' : '') + secs;
     }
 
     // Recompute sunrise/sunset and the date line when the date rolls over.
-    var dateKey = now.toDateString();
+    var dateKey = dateKeyOf(now);
     if (dateKey !== lastDateKey) {
       lastDateKey = dateKey;
       dateReadout.textContent = now.toLocaleDateString([], {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        timeZone: 'UTC'
       });
       if (window.DayNight) {
         window.DayNight.refresh();
@@ -335,6 +432,8 @@
         window.MoonPhase.refresh(now);
       }
     }
+
+    for (var h = 0; h < frameHooks.length; h++) frameHooks[h](hourAngle);
 
     requestAnimationFrame(frame);
   }

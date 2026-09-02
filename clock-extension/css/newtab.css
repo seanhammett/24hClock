@@ -32,7 +32,7 @@
    off it, so the override at the bottom of this block only has to pin
    color-scheme to one value and nothing else needs to know the theme.
 
-   The clock face is deliberately outside all of this: its cream daylight and
+   The clock face is deliberately outside all of this: its pale daylight and
    navy night are the reading the clock exists to give, not styling, so they
    stay put in either theme. What follows the theme is everything around the
    face — page background, readout, sidebar, and the marks that sit outside
@@ -40,10 +40,12 @@
 :root {
   color-scheme: light dark;
 
-  /* Light stays clear of the face's cream daylight (#f4f1e8): a cooler, very
-     slightly darker grey-blue, so the rim still reads as an edge where the
-     day wedge meets the page. */
-  --bg: light-dark(#e7eaf1, #0b0f17);
+  /* Light has to stay clear of the face's daylight (#e8ecf4) so the rim reads
+     as an edge where the day wedge meets the page. The two used to differ in
+     hue — warm cream on cool grey — and could sit close in lightness; now that
+     both are cool, the separation has to be lightness alone, so the page drops
+     several steps further down. */
+  --bg: light-dark(#d4dae6, #0b0f17);
   --panel-bg: light-dark(#f4f6fa, #141b29);
   --panel-border: light-dark(#c6cede, #2a3550);
   --text: light-dark(#18202f, #dbe3f2);
@@ -136,7 +138,7 @@ body {
 }
 
 /* The line is drawn on the face, which does not change with the theme, so it
-   keeps the one gold that reads on both the cream and the navy. Its label sits
+   keeps the one gold that reads on both the daylight and the navy. Its label sits
    outside the rim on the page, so that one does follow the theme. */
 .wake-sleep-line {
   stroke: #f2c14e;
@@ -157,6 +159,7 @@ body {
    of the time. */
 .readout {
   --time-size: clamp(20px, calc(var(--clock-size) * 0.0428), 54px);
+  position: relative;
   display: flex;
   flex-direction: column;
   text-align: left;
@@ -265,7 +268,7 @@ body.sidebar-collapsed .sidebar {
 }
 
 body.no-transition .sidebar,
-body.no-transition .sidebar-toggle {
+body.no-transition .sidebar-tabs {
   transition: none !important;
 }
 
@@ -478,49 +481,485 @@ body.no-transition .sidebar-toggle {
   outline-offset: 1px;
 }
 
-/* ---- Sidebar toggle -------------------------------------------------- */
+/* ---- Simulator ------------------------------------------------------- */
 
-.sidebar-toggle {
+/* The face is showing some other moment, so say so plainly rather than
+   leaving a clock that is simply wrong about the time, and say how far off it
+   is underneath.
+
+   Positioned out of the flow, mirroring the readout's own left inset on the
+   right. The clock column is centered and nearly as tall as the window, so a
+   badge that took part in the layout would push the face up and shrink it to
+   fit the moment the simulator came on. */
+.sim-badge {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: calc(var(--clock-size) * 0.126);
+  text-align: right;
+}
+
+body.simulating:not(.live-time) .sim-badge {
+  display: block;
+}
+
+.sim-badge-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  font-size: calc(var(--time-size) * 0.3);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+}
+
+.sim-delta {
+  margin-top: calc(var(--time-size) * 0.18);
+  font-size: calc(var(--time-size) * 0.32);
+  font-weight: 600;
+  color: var(--readout-muted);
+}
+
+/* A thin frame around the window, the way a recording indicator works: read
+   from anywhere on the page, in the way of nothing. */
+body.simulating::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  border: 2px solid var(--accent);
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Frozen time, so a second hand would sit still and read as a stopped clock;
+   the digital seconds are the same ':00' every time for the same reason. On
+   live time none of that holds: the clock is running, and says so. */
+body.simulating:not(.live-time) #hand-second {
+  display: none;
+}
+
+body.simulating:not(.live-time) .digital-seconds {
+  visibility: hidden;
+}
+
+/* Each location's name, on a pill lying along its own hand. The pill is filled
+   with that hand's colour — the only thing tying the two together — and takes
+   no outline of its own: simulator.js lays a slightly larger dark copy of the
+   whole shape, hand and pill together, underneath, so the outline is traced
+   around the pair rather than drawn across the hand where they meet. The
+   writing is the night navy, dark enough for every colour in the palette, and
+   set in small caps letters so a short name still fills its pill. */
+.sim-hand-pill {
+  stroke: none;
+}
+
+.sim-hand-label {
+  font-size: 6.5px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  fill: #12233f;
+}
+
+/* ---- Simulator panel -------------------------------------------------- */
+
+/* The switch is the panel's subject and its title both, so it stands alone on
+   the first line where the other panel has a heading. */
+.sim-switch {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* Date and time each take a line of their own: the calendar wants the width,
+   and the time reads as a caption under it. */
+.sim-field {
+  margin-bottom: 10px;
+}
+
+.field-title {
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+/* A month at a time, in the panel rather than behind a flyout. Every month is
+   drawn as six rows whether it needs them or not, so paging through the year
+   does not shuffle everything below it up and down. */
+.sim-cal {
+  padding: 6px;
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+}
+
+.sim-cal-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.sim-cal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sim-cal-nav {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sim-cal-nav:hover {
+  color: var(--text);
+  background: var(--panel-bg);
+}
+
+.sim-cal-week,
+.sim-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.sim-cal-week {
+  margin-bottom: 2px;
+  font-size: 0.65rem;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.sim-cal-day {
+  padding: 4px 0;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--text);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sim-cal-day:hover {
+  background: var(--panel-bg);
+}
+
+/* The days either side of the month are shown rather than left blank, so the
+   week a scenario straddles reads as one week. */
+.sim-cal-day.is-other {
+  color: var(--text-dim);
+  opacity: 0.55;
+}
+
+.sim-cal-day.is-today {
+  border-color: var(--text-dim);
+}
+
+.sim-cal-day.is-on {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.sim-cal-day:focus-visible,
+.sim-cal-nav:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sim-hint {
+  margin: 0 0 14px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+/* Time, its Now button and the day's scrub read as one control in three
+   lines, with the switch that hands the lot back to the real clock under it. */
+.sim-time-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-time-row label {
+  flex: none;
+  margin-bottom: 0;
+}
+
+.sim-time-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sim-scrub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sim-live {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 7px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sim-live[aria-pressed='true'] {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.sim-live:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* While the real clock is driving, the moment is not ours to set. The controls
+   keep their values — turning live time off puts the chosen moment back. */
+body.live-time .sim-date-field,
+body.live-time .sim-time-row,
+body.live-time .sim-scrub {
+  opacity: 0.4;
+}
+
+/* The drag is handled in simulator.js so it can wrap through midnight, which
+   means the browser must not claim the gesture for scrolling first. */
+.sim-scrub input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+  touch-action: none;
+}
+
+.sim-scrub input[type='range']:focus-visible,
+.sim-add:focus-visible,
+.sim-now:focus-visible,
+.sim-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sim-now,
+.sim-add {
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sim-now {
+  flex: none;
+  padding: 6px 10px;
+}
+
+.sim-add {
+  width: 100%;
+  padding: 8px 10px;
+}
+
+.sim-add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sim-rows {
+  margin-bottom: 10px;
+}
+
+.sim-row {
+  padding: 8px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.sim-row:last-child {
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.sim-row-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sim-row-head select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+}
+
+.sim-row-head select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* The swatch is the whole legend: it is the same color as that location's
+   hand on the face. The main location has no extra hand, so it shows the sun
+   and moon it does carry instead. */
+.sim-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+}
+
+.sim-swatch-main {
+  border: none;
+  font-size: 0.95rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.sim-btn {
+  flex: none;
+  width: 26px;
+  height: 28px;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--text-dim);
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sim-btn:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.sim-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.sim-row-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 5px 0 0 20px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.sim-row-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-role {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.sim-coords {
+  margin: 8px 0 2px 20px;
+}
+
+.sim-coords .field {
+  margin-bottom: 0;
+}
+
+/* The row's inputs are wrapped by their labels rather than tied to them by
+   id, so that a dozen rows need no unique ids; that puts the label's own
+   bottom margin above the input instead of between the two. */
+.sim-coords label input {
+  display: block;
+  margin-top: 4px;
+}
+
+.sim-coords[hidden] {
+  display: none;
+}
+
+/* ---- Sidebar tabs ---------------------------------------------------- */
+
+/* The handle the sidebar hangs from, in the same place the single chevron
+   used to sit. Two tabs stacked in one column: each one names the panel it
+   opens, and the labels run vertically so the handle stays as narrow as the
+   chevron was. */
+.sidebar-tabs {
   position: fixed;
   top: 50%;
   right: var(--sidebar-width);
   transform: translateY(-50%);
-  width: var(--toggle-width);
-  height: 64px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  transition: right 0.25s ease;
+  z-index: 10;
+}
+
+body.sidebar-collapsed .sidebar-tabs {
+  right: 0;
+}
+
+.sidebar-tab {
+  width: var(--toggle-width);
+  padding: 16px 0;
+  /* Reading downward, which keeps the handle as narrow as the chevron was
+     without rotating the box and taking its borders and radii with it. */
+  writing-mode: vertical-rl;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-right: none;
   border-radius: 8px 0 0 8px;
   color: var(--text-dim);
   cursor: pointer;
-  transition: right 0.25s ease;
-  z-index: 10;
 }
 
-body.sidebar-collapsed .sidebar-toggle {
-  right: 0;
-}
-
-.sidebar-toggle:hover {
+.sidebar-tab:hover {
   color: var(--text);
 }
 
-.sidebar-toggle:focus-visible {
+/* The open panel's tab sits at full strength; the other one recedes toward
+   the page, so which panel is showing is legible from the handle alone. */
+.sidebar-tab.is-active {
+  color: var(--text);
+  background: var(--panel-bg);
+}
+
+.sidebar-tab:not(.is-active) {
+  background: color-mix(in srgb, var(--panel-bg) 55%, var(--bg));
+}
+
+.sidebar-tab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.chevron {
-  font-size: 1.6rem;
-  line-height: 1;
-  transition: transform 0.25s ease;
-}
-
-body:not(.sidebar-collapsed) .chevron {
-  transform: rotate(180deg);
 }
 
 .visually-hidden {
@@ -539,8 +978,7 @@ body:not(.sidebar-collapsed) .chevron {
 
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
-  .sidebar-toggle,
-  .chevron {
+  .sidebar-tabs {
     transition: none;
   }
 }

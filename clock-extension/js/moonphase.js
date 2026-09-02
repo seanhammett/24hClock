@@ -4,7 +4,8 @@
  * The icon is three stacked discs (dark side, lit side, outline); only the lit
  * one is masked, and this file is what draws that mask. Phase depends on the
  * date alone, not on where you are, so this runs off the clock's date rollover
- * rather than the location the day/night slices use.
+ * rather than the location the day/night slices use — which also means it
+ * follows the simulator's date without knowing anything about it.
  */
 (function () {
   'use strict';
@@ -42,7 +43,7 @@
   function render(date) {
     if (typeof SunCalc === 'undefined') return;
 
-    var illum = SunCalc.getMoonIllumination(date || new Date());
+    var illum = SunCalc.getMoonIllumination(date || window.Clock24.now());
     var fraction = Math.max(illum.fraction, MIN_FRACTION);
     // phase runs 0 at new through 0.5 at full back to 1 at new; the first half
     // is waxing, which in the northern hemisphere is lit on the right.

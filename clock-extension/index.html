@@ -39,7 +39,7 @@
       </defs>
       <!-- Base face: night is the default; the daylight wedge is painted on top -->
       <circle id="face-base" cx="220" cy="220" r="180" fill="#12233f"></circle>
-      <path id="day-wedge" d="" fill="#f4f1e8" visibility="hidden"></path>
+      <path id="day-wedge" d="" fill="#e8ecf4" visibility="hidden"></path>
       <g id="sun-markers"></g>
       <!-- Current time, marked just outside the rim. Rotated by clock.js with
            the hour hand it echoes. -->
@@ -56,9 +56,13 @@
       <g id="numerals-night" clip-path="url(#clip-night)"></g>
       <!-- Wake/sleep lines: over the day/night fill, under the hands -->
       <g id="wake-sleep-lines"></g>
+      <!-- Simulator only: one plain hour hand per additional location, built by
+           simulator.js. Below the real hour hand, which keeps the sun and moon
+           and stays the one the eye goes to first. -->
+      <g id="extra-hands"></g>
       <g id="hand-hour">
         <line x1="220" y1="238" x2="220" y2="128" stroke="#1c2742" stroke-width="9" stroke-linecap="round"></line>
-        <line x1="220" y1="238" x2="220" y2="128" stroke="#f4f1e8" stroke-width="3" stroke-linecap="round"></line>
+        <line x1="220" y1="238" x2="220" y2="128" stroke="#e8ecf4" stroke-width="3" stroke-linecap="round"></line>
       </g>
       <!-- Sun and moon ride the hour hand, above the face and the hour hand it
            caps, but below the minute and second hands, which sweep over them.
@@ -84,26 +88,44 @@
       </g>
       <g id="hand-minute">
         <line x1="220" y1="244" x2="220" y2="84" stroke="#1c2742" stroke-width="6" stroke-linecap="round"></line>
-        <line x1="220" y1="244" x2="220" y2="84" stroke="#f4f1e8" stroke-width="2" stroke-linecap="round"></line>
+        <line x1="220" y1="244" x2="220" y2="84" stroke="#e8ecf4" stroke-width="2" stroke-linecap="round"></line>
       </g>
+      <!-- Simulator only: the main location's name, written along the hour
+           hand. Above the hour and minute hands, so neither can cover it. -->
+      <g id="sim-hand-labels"></g>
+      <!-- The second hand sweeps over everything, names included: it is the one
+           thing on the dial that is always moving, and it has to stay findable. -->
       <g id="hand-second">
         <line x1="220" y1="252" x2="220" y2="58" stroke="#ff6b57" stroke-width="2" stroke-linecap="round"></line>
       </g>
       <circle id="hub" cx="220" cy="220" r="7" fill="#ff6b57" stroke="#1c2742" stroke-width="2"></circle>
     </svg>
     <div class="readout">
+      <!-- Shown only while the simulator is driving the face, so a clock
+           parked at some other moment can never be mistaken for a live one.
+           The line under it says how far from now that moment is. -->
+      <div id="sim-badge" class="sim-badge">
+        <span class="sim-badge-pill">Simulated</span>
+        <div id="sim-delta" class="sim-delta"></div>
+      </div>
       <div id="digital" class="digital" aria-hidden="true"><span id="digital-main"></span><span id="digital-seconds" class="digital-seconds"></span></div>
       <div id="date-readout" class="date-readout"></div>
       <div id="location-readout" class="location-readout"></div>
     </div>
   </main>
 
-  <button id="sidebar-toggle" class="sidebar-toggle" aria-expanded="false" aria-controls="sidebar" title="Location settings">
-    <span class="chevron" aria-hidden="true">&#x2039;</span>
-    <span class="visually-hidden">Toggle location settings</span>
-  </button>
+  <!-- The sidebar's handle. Two tabs rather than one chevron: they choose which
+       panel the sidebar shows, and clicking the open one closes it, which is
+       what the chevron used to do. There is only ever one clock. -->
+  <div id="sidebar-tabs" class="sidebar-tabs" role="tablist" aria-orientation="vertical">
+    <button id="tab-options" class="sidebar-tab is-active" type="button" role="tab"
+            aria-selected="true" aria-expanded="false" aria-controls="panel-options">Options</button>
+    <button id="tab-sim" class="sidebar-tab" type="button" role="tab"
+            aria-selected="false" aria-expanded="false" aria-controls="panel-sim">Simulator</button>
+  </div>
 
-  <aside id="sidebar" class="sidebar" aria-label="Location settings">
+  <aside id="sidebar" class="sidebar">
+    <div id="panel-options" class="panel" role="tabpanel" aria-labelledby="tab-options">
     <h1>Location</h1>
 
     <div class="field">
@@ -203,14 +225,85 @@
         </label>
       </div>
     </div>
+    </div>
+
+    <div id="panel-sim" class="panel" role="tabpanel" aria-labelledby="tab-sim" hidden>
+      <label class="checkbox-label sim-switch">
+        <input type="checkbox" id="sim-active">
+        Activate Simulator
+      </label>
+      <p class="sim-hint">
+        Parks the clock at a chosen moment and gives every place after the first
+        its own hour hand.
+      </p>
+
+      <!-- A month at a time rather than a text field with a flyout: moving
+           around the calendar is most of what the simulator is for, so the
+           calendar is the control. The input behind it holds the value. -->
+      <div class="field sim-field sim-date-field">
+        <div class="field-title" id="sim-date-label">Date</div>
+        <input type="date" id="sim-date" hidden>
+        <div class="sim-cal">
+          <div class="sim-cal-head">
+            <button type="button" id="sim-cal-prev" class="sim-cal-nav"
+                    aria-label="Previous month">&lsaquo;</button>
+            <div id="sim-cal-title" class="sim-cal-title" aria-live="polite"></div>
+            <button type="button" id="sim-cal-next" class="sim-cal-nav"
+                    aria-label="Next month">&rsaquo;</button>
+          </div>
+          <div id="sim-cal-week" class="sim-cal-week" aria-hidden="true"></div>
+          <div id="sim-cal-grid" class="sim-cal-grid" role="group"
+               aria-labelledby="sim-date-label"></div>
+        </div>
+      </div>
+      <div class="field sim-field sim-time-row">
+        <label for="sim-time">Time</label>
+        <input type="time" id="sim-time">
+        <button type="button" id="sim-now" class="sim-now">Now</button>
+      </div>
+      <!-- Scrub the whole day without leaving the slider: the time field and
+           this stay in step, and both mean wall-clock time at the main place. -->
+      <div class="sim-scrub">
+        <input type="range" id="sim-slider" min="0" max="1439" step="1" value="720"
+               aria-label="Time of day at the main location">
+      </div>
+      <!-- Hands the moment back to the real clock while keeping the places:
+           the same dial, several cities, running. -->
+      <button type="button" id="sim-live" class="sim-live" aria-pressed="false">
+        Use live time
+      </button>
+
+      <!-- The simulator's own orientation, so trying one out here leaves the
+           everyday clock as it was. Louis XIV is not offered: it orients the
+           dial by your waking hours, which are not part of a scenario. -->
+      <fieldset class="option-group">
+        <legend>Orientation</legend>
+        <label class="checkbox-label">
+          <input type="radio" name="sim-orientation" id="sim-orient-noon" value="noon" checked>
+          12 noon at top
+        </label>
+        <label class="checkbox-label">
+          <input type="radio" name="sim-orientation" id="sim-orient-centered" value="centered">
+          Day &amp; night centered
+        </label>
+      </fieldset>
+
+      <h2>Locations</h2>
+      <div id="sim-rows" class="sim-rows"></div>
+      <button type="button" id="sim-add" class="sim-add">+ Add location</button>
+      <p id="sim-error" class="error" role="alert" hidden></p>
+    </div>
   </aside>
 
   <script src="js/suncalc.js"></script>
   <script src="js/cities.js"></script>
   <script src="js/tz-lookup.js"></script>
+  <script src="js/places.js"></script>
+  <script src="js/store.js"></script>
   <script src="js/clock.js"></script>
   <script src="js/moonphase.js"></script>
   <script src="js/daynight.js"></script>
   <script src="js/sidebar.js"></script>
+  <script src="js/simulator.js"></script>
 </body>
 </html>

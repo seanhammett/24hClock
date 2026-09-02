@@ -83,7 +83,8 @@ async function main() {
 
   await evaluate(`
     document.body.classList.remove('sidebar-collapsed');
-    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', 'true');
+    document.querySelectorAll('.sidebar-tab')
+      .forEach(t => t.setAttribute('aria-expanded', 'true'));
     document.fonts.ready.then(() => true);
   `);
   await sleep(400);

@@ -11,7 +11,7 @@
   var R = Clock24.R;
 
   var NIGHT_FILL = '#12233f';
-  var DAY_FILL = '#f4f1e8';
+  var DAY_FILL = '#e8ecf4';
   var NEUTRAL_FILL = '#1d2536';
   var TICK_ON_DAY = '#41506e';
   var TICK_ON_NIGHT = '#93a3c4';
@@ -94,8 +94,10 @@
     return (angle - sunriseAngle + 360) % 360 <= daySweep;
   }
 
+  /** A zoned reading, formatted. Zoned dates carry their wall clock in UTC. */
   function formatTime(date) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([],
+      { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
   }
 
   function clearMarkers() {
@@ -205,8 +207,8 @@
 
   /** Format minutes-past-midnight the same way the sun times are shown. */
   function formatMinutes(minutes) {
-    var d = new Date(2000, 0, 1);
-    d.setMinutes(minutes);
+    var d = new Date(Date.UTC(2000, 0, 1));
+    d.setUTCMinutes(minutes);
     return formatTime(d);
   }
 
@@ -253,7 +255,8 @@
    * the right half the text is left-justified; on the left half it is right-
    * justified and flipped 180° so it stays upright. Keeping labels radial (not
    * horizontal) shrinks their tangential footprint, so near-coincident times
-   * need far less separation.
+   * need far less separation. Exported: the simulator's city labels sit on the
+   * same rim and must be placed by the same rule.
    */
   function placeRimLabel(el, angle) {
     var rad = angle * Math.PI / 180;
@@ -270,14 +273,15 @@
   }
 
   /**
-   * When two rim time labels (sun and/or wake/sleep) fall at nearly the same
-   * angle they overlap — e.g. a wake time within a couple of minutes of
-   * sunrise. Slide the crowded ones apart along the rim so both stay readable,
-   * pushing each symmetrically away from the shared midpoint. Only the text
-   * moves; every tick and line still points at its true time.
+   * When two rim labels fall at nearly the same angle they overlap — e.g. a
+   * wake time within a couple of minutes of sunrise. Slide the crowded ones
+   * apart along the rim so both stay readable, pushing each symmetrically away
+   * from the shared midpoint. Only the text moves; every tick and line still
+   * points at its true time.
    */
   function resolveLabelCollisions() {
-    var els = document.querySelectorAll('.sun-marker-label, .wake-sleep-label');
+    var els = document.querySelectorAll(
+      '.sun-marker-label, .wake-sleep-label');
     if (els.length < 2) return;
     var items = [];
     for (var i = 0; i < els.length; i++) {
@@ -321,7 +325,7 @@
   function refresh() {
     // Orient first: Louis XIV mode centers the waking window with no location.
     var times = location
-      ? SunCalc.getTimes(new Date(), location.lat, location.lon)
+      ? SunCalc.getTimes(Clock24.now(), location.lat, location.lon)
       : null;
     Clock24.setDialOffset(computeDialOffset(times));
     renderWakeSleepLines();
@@ -382,7 +386,9 @@
       refresh();
     },
     setOrientation: function (mode) {
-      orientation = (mode === 'centered' || mode === 'louis') ? mode : 'noon';
+      var next = (mode === 'centered' || mode === 'louis') ? mode : 'noon';
+      if (next === orientation) return;
+      orientation = next;
       refresh();
     },
     setWakeBed: function (wake, bed) {
@@ -391,6 +397,7 @@
       if (orientation === 'louis' || showWakeSleep) refresh();
     },
     setShowWakeSleep: function (show) {
+      if (showWakeSleep === !!show) return;
       showWakeSleep = !!show;
       refresh();
     },
