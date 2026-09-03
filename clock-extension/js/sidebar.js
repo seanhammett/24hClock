@@ -1,11 +1,15 @@
 /*
- * sidebar.js — the sidebar shell (two tabs, collapse) and the Options panel:
- * lat/lon inputs with validation, debounced persistence, and display of the
- * computed sun times published by daynight.js.
+ * sidebar.js — the sidebar shell (the handle, collapse) and the location block
+ * at the top of it: lat/lon inputs with validation, debounced persistence, and
+ * the note daynight.js publishes for a day with no sunrise or sunset.
  *
- * While the simulator is driving the face it owns the clock, so the settings
- * here that it overrides — location, orientation, wake/sleep — are kept as
- * live values and only pushed once it hands the face back.
+ * The location set here is the main one: it carries the real hour hand, the sun
+ * and moon, and the day/night shading. Everywhere else on the dial is
+ * locations.js, in the same panel just below.
+ *
+ * While the simulator is driving the face it overrides two of the settings here
+ * — orientation and wake/sleep — so those are kept as live values and only
+ * pushed once it hands the face back.
  */
 (function () {
   'use strict';
@@ -13,7 +17,6 @@
   var STORAGE_KEYS = {
     location: 'location',
     collapsed: 'sidebarCollapsed',
-    activeTab: 'activeTab',
     favorites: 'favorites',
     overrideNewTabs: 'overrideNewTabs',
     orientation: 'orientation',
@@ -43,9 +46,6 @@
   var latInput = document.getElementById('lat-input');
   var lonInput = document.getElementById('lon-input');
   var errorEl = document.getElementById('input-error');
-  var sunTimesEl = document.getElementById('sun-times');
-  var sunriseEl = document.getElementById('sunrise-time');
-  var sunsetEl = document.getElementById('sunset-time');
   var polarNote = document.getElementById('polar-note');
   var overrideNewTab = document.getElementById('override-newtab');
 
@@ -121,10 +121,9 @@
 
   function onOrientationChange() {
     var mode = currentOrientation();
-    liveOrientation = mode;
     storage.set(makeEntry(STORAGE_KEYS.orientation, mode));
     updateWakeTimesVisibility();
-    if (!simulating()) window.DayNight.setOrientation(mode);
+    window.DayNight.setOrientation(mode);
   }
 
   orientNoon.addEventListener('change', onOrientationChange);
@@ -166,9 +165,9 @@
     // Nothing to keep clear of once the minute hand is off, so the hour hand
     // and the sun/moon it carries take the extra room.
     window.Clock24.setHourHandExtended(!showMinute.checked);
-    // The sun and moon have just moved along the hand, and the simulator's
-    // name for the main location has to stay clear of them.
-    if (window.Simulator) window.Simulator.render();
+    // The sun and moon have just moved along the hand, and the main location's
+    // name on it has to stay clear of them.
+    if (window.Locations) window.Locations.render();
   }
 
   showMinute.addEventListener('change', function () {
@@ -197,56 +196,20 @@
     applySubhourTicks();
   });
 
-  // ---- Tabs, collapse / expand ------------------------------------------
+  // ---- Collapse / expand -------------------------------------------------
 
-  var tabs = {
-    options: document.getElementById('tab-options'),
-    sim: document.getElementById('tab-sim')
-  };
-  var panels = {
-    options: document.getElementById('panel-options'),
-    sim: document.getElementById('panel-sim')
-  };
-  var activeTab = 'options';
+  var toggle = document.getElementById('sidebar-toggle');
 
   function setCollapsed(collapsed, persist) {
     document.body.classList.toggle('sidebar-collapsed', collapsed);
-    Object.keys(tabs).forEach(function (name) {
-      tabs[name].setAttribute('aria-expanded', String(!collapsed));
-    });
+    toggle.setAttribute('aria-expanded', String(!collapsed));
     if (persist) {
       storage.set(makeEntry(STORAGE_KEYS.collapsed, collapsed));
     }
   }
 
-  function setActiveTab(name, persist) {
-    activeTab = panels[name] ? name : 'options';
-    Object.keys(panels).forEach(function (key) {
-      var on = key === activeTab;
-      panels[key].hidden = !on;
-      tabs[key].setAttribute('aria-selected', String(on));
-      tabs[key].classList.toggle('is-active', on);
-    });
-    if (persist) {
-      storage.set(makeEntry(STORAGE_KEYS.activeTab, activeTab));
-    }
-    // Favorites can have changed in the other panel since this one last drew.
-    if (activeTab === 'sim' && window.Simulator) window.Simulator.onShown();
-  }
-
-  /** A tab opens its panel; clicking the one already open closes the sidebar. */
-  function onTabClick(name) {
-    var collapsed = document.body.classList.contains('sidebar-collapsed');
-    if (!collapsed && activeTab === name) {
-      setCollapsed(true, true);
-      return;
-    }
-    setActiveTab(name, true);
-    if (collapsed) setCollapsed(false, true);
-  }
-
-  Object.keys(tabs).forEach(function (name) {
-    tabs[name].addEventListener('click', function () { onTabClick(name); });
+  toggle.addEventListener('click', function () {
+    setCollapsed(!document.body.classList.contains('sidebar-collapsed'), true);
   });
 
   // ---- Places dropdown + favorites ---------------------------------------
@@ -275,6 +238,8 @@
     Places.toggleFavorite(id);
     storage.set(makeEntry(STORAGE_KEYS.favorites, Places.getFavorites()));
     buildPlaceOptions(id); // keep the current city selected
+    // The rows below group their menus the same way, so they have moved too.
+    if (window.Locations) window.Locations.refreshRows();
   });
 
   var locationReadout = document.getElementById('location-readout');
@@ -287,12 +252,14 @@
   }
 
   // ---- Live state ---------------------------------------------------------
-  // What the Options panel would have the clock show. The simulator borrows
-  // the face and overrides all four, so while it is active these are only
-  // recorded and persisted; restoreLiveState puts them back when it is done.
+  // What the Options block would have the clock show. The one setting the
+  // simulator overrides is the wake/sleep lines, which it hides, so while it is
+  // active that is only recorded and persisted; restoreLiveState puts it back
+  // when it is done. Everything else — the location, the orientation — is
+  // pushed straight through, because the simulator moves the moment and nothing
+  // else about how the dial is drawn.
 
   var liveLocation = null;
-  var liveOrientation = 'noon';
   var liveShowWakeSleep = false;
   var liveWake = '07:00';
   var liveBed = '23:00';
@@ -308,17 +275,41 @@
   /** Point the clock and shading at a location (or null to clear). */
   function applyLocation(loc) {
     liveLocation = loc || null;
-    if (!simulating()) pushLiveLocation();
+    pushLiveLocation();
+    // Both the extra hands and the simulator's fields are measured against the
+    // main location, so they are told rather than left to notice.
+    document.dispatchEvent(new CustomEvent('location:changed'));
+  }
+
+  /**
+   * Take a location from elsewhere in the panel — promoting one of the extra
+   * locations — and make it the main one, controls and all.
+   */
+  function setMainLocation(loc) {
+    if (!loc) return;
+    showError(null);
+    latInput.value = loc.lat;
+    lonInput.value = loc.lon;
+    storage.set(makeEntry(STORAGE_KEYS.location, loc));
+    applyLocation(loc);
+    buildPlaceOptions(findPlace(loc.place) ? loc.place : 'custom');
   }
 
   function restoreLiveState() {
     window.DayNight.setWakeBed(liveWake, liveBed);
     window.DayNight.setShowWakeSleep(liveShowWakeSleep);
-    window.DayNight.setOrientation(liveOrientation);
+    // Both of the above are a no-op where the lines were already off, so this
+    // is what guarantees the repaint: the clock is back on real time and the
+    // whole face has to be redrawn for it.
     pushLiveLocation();
   }
 
-  window.Sidebar = { restoreLiveState: restoreLiveState };
+  window.Sidebar = {
+    restoreLiveState: restoreLiveState,
+    /** The location carrying the real hour hand, or null if none is set. */
+    mainLocation: function () { return liveLocation; },
+    setMainLocation: setMainLocation
+  };
 
   placeSelect.addEventListener('change', function () {
     updateFavToggle();
@@ -399,33 +390,18 @@
   latInput.addEventListener('input', onInput);
   lonInput.addEventListener('input', onInput);
 
-  // ---- Sun-times display -------------------------------------------------
-
-  /** The sun times arrive already zoned, carrying their wall clock in UTC. */
-  function formatTime(date) {
-    return date.toLocaleTimeString([],
-      { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
-  }
+  // ---- Polar note --------------------------------------------------------
+  // Sunrise and sunset are marked on the rim, which is where they are read.
+  // The only thing left to say in words is when there are none to mark.
 
   document.addEventListener('daynight:updated', function (e) {
-    var d = e.detail;
-    if (d.state === 'empty') {
-      sunTimesEl.hidden = true;
-      return;
-    }
-    sunTimesEl.hidden = false;
-    if (d.state === 'ok') {
-      sunriseEl.textContent = formatTime(d.sunrise);
-      sunsetEl.textContent = formatTime(d.sunset);
-      polarNote.hidden = true;
-    } else {
-      sunriseEl.textContent = '–';
-      sunsetEl.textContent = '–';
-      polarNote.textContent = d.state === 'polar-day'
+    var polar = e.detail.state === 'polar-day' || e.detail.state === 'polar-night';
+    if (polar) {
+      polarNote.textContent = e.detail.state === 'polar-day'
         ? 'Sun does not set today.'
         : 'Sun does not rise today.';
-      polarNote.hidden = false;
     }
+    polarNote.hidden = !polar;
   });
 
   // ---- Restore persisted state -------------------------------------------
@@ -433,7 +409,6 @@
   storage.get([
     STORAGE_KEYS.location,
     STORAGE_KEYS.collapsed,
-    STORAGE_KEYS.activeTab,
     STORAGE_KEYS.favorites,
     STORAGE_KEYS.overrideNewTabs,
     STORAGE_KEYS.orientation,
@@ -505,7 +480,6 @@
       bedInput.value = items[STORAGE_KEYS.bedTime];
     }
     // The simulator is never active this early, so these apply straight away.
-    liveOrientation = mode;
     liveShowWakeSleep = showWakeSleep.checked;
     liveWake = wakeInput.value;
     liveBed = bedInput.value;
@@ -521,9 +495,6 @@
     applySubhourTicks();
     // Restore without animating: state should appear settled on load.
     document.body.classList.add('no-transition');
-    // The simulator is never on at load, so the Options tab is the one that
-    // can be resumed into; anything else falls back to it.
-    setActiveTab(items[STORAGE_KEYS.activeTab], false);
     // Default to expanded on first run so the location inputs are discoverable.
     setCollapsed(items[STORAGE_KEYS.collapsed] === true, false);
     requestAnimationFrame(function () {

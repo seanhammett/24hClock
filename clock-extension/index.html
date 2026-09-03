@@ -56,9 +56,9 @@
       <g id="numerals-night" clip-path="url(#clip-night)"></g>
       <!-- Wake/sleep lines: over the day/night fill, under the hands -->
       <g id="wake-sleep-lines"></g>
-      <!-- Simulator only: one plain hour hand per additional location, built by
-           simulator.js. Below the real hour hand, which keeps the sun and moon
-           and stays the one the eye goes to first. -->
+      <!-- One plain hour hand per additional location, built by locations.js.
+           Below the real hour hand, which keeps the sun and moon and stays the
+           one the eye goes to first. -->
       <g id="extra-hands"></g>
       <g id="hand-hour">
         <line x1="220" y1="238" x2="220" y2="128" stroke="#1c2742" stroke-width="9" stroke-linecap="round"></line>
@@ -90,9 +90,10 @@
         <line x1="220" y1="244" x2="220" y2="84" stroke="#1c2742" stroke-width="6" stroke-linecap="round"></line>
         <line x1="220" y1="244" x2="220" y2="84" stroke="#e8ecf4" stroke-width="2" stroke-linecap="round"></line>
       </g>
-      <!-- Simulator only: the main location's name, written along the hour
-           hand. Above the hour and minute hands, so neither can cover it. -->
-      <g id="sim-hand-labels"></g>
+      <!-- The main location's name, written along the hour hand once there is
+           a second location to tell it from. Above the hour and minute hands,
+           so neither can cover it. -->
+      <g id="hand-labels"></g>
       <!-- The second hand sweeps over everything, names included: it is the one
            thing on the dial that is always moving, and it has to stay findable. -->
       <g id="hand-second">
@@ -114,18 +115,14 @@
     </div>
   </main>
 
-  <!-- The sidebar's handle. Two tabs rather than one chevron: they choose which
-       panel the sidebar shows, and clicking the open one closes it, which is
-       what the chevron used to do. There is only ever one clock. -->
-  <div id="sidebar-tabs" class="sidebar-tabs" role="tablist" aria-orientation="vertical">
-    <button id="tab-options" class="sidebar-tab is-active" type="button" role="tab"
-            aria-selected="true" aria-expanded="false" aria-controls="panel-options">Options</button>
-    <button id="tab-sim" class="sidebar-tab" type="button" role="tab"
-            aria-selected="false" aria-expanded="false" aria-controls="panel-sim">Simulator</button>
-  </div>
+  <!-- The sidebar's handle: one arrow, pointing the way the panel will go. -->
+  <button id="sidebar-toggle" class="sidebar-toggle" type="button"
+          aria-expanded="false" aria-controls="sidebar" title="Settings">
+    <span class="chevron" aria-hidden="true">&#x2039;</span>
+    <span class="visually-hidden">Toggle settings</span>
+  </button>
 
-  <aside id="sidebar" class="sidebar">
-    <div id="panel-options" class="panel" role="tabpanel" aria-labelledby="tab-options">
+  <aside id="sidebar" class="sidebar" aria-label="Settings">
     <h1>Location</h1>
 
     <div class="field">
@@ -147,12 +144,95 @@
     </div>
     <p id="input-error" class="error" role="alert" hidden></p>
 
-    <div id="sun-times" class="sun-times" hidden>
-      <p class="sun-times-line">
-        <span><span class="sun-label">Sunrise</span> <span id="sunrise-time">–</span></span>
-        <span><span id="sunset-time">–</span> <span class="sun-label">Sunset</span></span>
-      </p>
-      <p id="polar-note" class="polar-note" hidden></p>
+    <!-- The times themselves are marked on the rim, so the panel does not
+         repeat them. This says the one thing the rim cannot: that there is no
+         sunrise or sunset today to mark. -->
+    <p id="polar-note" class="polar-note" hidden></p>
+
+    <!-- Everywhere else worth watching. Each one puts a plain hour hand on the
+         face beside the main location's, turning with the same real clock; the
+         time beside it is that location's own reading of the moment on show. -->
+    <div class="loc-list">
+      <div id="loc-rows" class="loc-rows"></div>
+      <button type="button" id="loc-add" class="loc-add">+ Add location</button>
+      <!-- How those hands are painted. Two buttons showing the thing itself
+           rather than naming it: three dots in the first three colours of the
+           palette, or three of the one navy the grayscale hands all share.
+           locations.js fills the dots, so the palette stays in one place.
+           Neither control is worth offering until there is a hand to paint or
+           hide, so the row appears with the first one. -->
+      <div class="loc-style" id="loc-style-field" hidden>
+        <!-- Takes the hands off the face and leaves the list alone, for when
+             the dial is wanted plain but the places are worth keeping. -->
+        <button type="button" id="loc-hide" class="loc-hide" aria-pressed="false">
+          Hide hands
+        </button>
+        <div class="loc-style-picker" role="group" aria-label="Additional hands">
+          <button type="button" id="loc-style-colour" class="loc-style-btn"
+                  aria-pressed="true" title="Colour">
+            <span class="loc-dots" aria-hidden="true"></span>
+            <span class="visually-hidden">Colour</span>
+          </button>
+          <button type="button" id="loc-style-mono" class="loc-style-btn"
+                  aria-pressed="false" title="Grayscale">
+            <span class="loc-dots" aria-hidden="true"></span>
+            <span class="visually-hidden">Grayscale</span>
+          </button>
+        </div>
+      </div>
+      <p id="loc-error" class="error" role="alert" hidden></p>
+    </div>
+
+    <!-- The clock, at some moment other than this one. Its own block rather
+         than part of Options below: those settings say how the clock is drawn,
+         this one says which moment it is drawing — the orientation and
+         everything else under Options apply just the same while it is on. The
+         controls are folded away until it is switched on: they are a panel's
+         worth on their own, and mean nothing while the clock is running live. -->
+    <div class="simulator">
+      <h2>Simulator</h2>
+      <label class="checkbox-label sim-switch">
+        <input type="checkbox" id="sim-active">
+        Time Travel
+      </label>
+      <div id="sim-controls" class="sim-controls" hidden>
+        <p class="sim-hint">
+          Every hand on the face moves to the chosen moment, so the whole dial
+          reads as one instant seen from every location.
+        </p>
+
+        <!-- A month at a time rather than a text field with a flyout: moving
+             around the calendar is most of what the simulator is for, so the
+             calendar is the control. The input behind it holds the value. -->
+        <div class="field sim-field sim-date-field">
+          <div class="field-title" id="sim-date-label">Date</div>
+          <input type="date" id="sim-date" hidden>
+          <div class="sim-cal">
+            <div class="sim-cal-head">
+              <button type="button" id="sim-cal-prev" class="sim-cal-nav"
+                      aria-label="Previous month">&lsaquo;</button>
+              <div id="sim-cal-title" class="sim-cal-title" aria-live="polite"></div>
+              <button type="button" id="sim-cal-next" class="sim-cal-nav"
+                      aria-label="Next month">&rsaquo;</button>
+            </div>
+            <div id="sim-cal-week" class="sim-cal-week" aria-hidden="true"></div>
+            <div id="sim-cal-grid" class="sim-cal-grid" role="group"
+                 aria-labelledby="sim-date-label"></div>
+          </div>
+        </div>
+        <div class="field sim-field sim-time-row">
+          <label for="sim-time">Time</label>
+          <input type="time" id="sim-time">
+          <button type="button" id="sim-now" class="sim-now">Now</button>
+        </div>
+        <!-- Scrub the whole day without leaving the slider: the time field and
+             this stay in step, and both mean wall-clock time at the main
+             place. Run off either end and it carries on into the next day. -->
+        <div class="sim-scrub">
+          <input type="range" id="sim-slider" min="0" max="1439" step="1" value="720"
+                 aria-label="Time of day at the main location">
+        </div>
+      </div>
     </div>
 
     <div class="options">
@@ -225,74 +305,6 @@
         </label>
       </div>
     </div>
-    </div>
-
-    <div id="panel-sim" class="panel" role="tabpanel" aria-labelledby="tab-sim" hidden>
-      <label class="checkbox-label sim-switch">
-        <input type="checkbox" id="sim-active">
-        Activate Simulator
-      </label>
-      <p class="sim-hint">
-        Parks the clock at a chosen moment and gives every place after the first
-        its own hour hand.
-      </p>
-
-      <!-- A month at a time rather than a text field with a flyout: moving
-           around the calendar is most of what the simulator is for, so the
-           calendar is the control. The input behind it holds the value. -->
-      <div class="field sim-field sim-date-field">
-        <div class="field-title" id="sim-date-label">Date</div>
-        <input type="date" id="sim-date" hidden>
-        <div class="sim-cal">
-          <div class="sim-cal-head">
-            <button type="button" id="sim-cal-prev" class="sim-cal-nav"
-                    aria-label="Previous month">&lsaquo;</button>
-            <div id="sim-cal-title" class="sim-cal-title" aria-live="polite"></div>
-            <button type="button" id="sim-cal-next" class="sim-cal-nav"
-                    aria-label="Next month">&rsaquo;</button>
-          </div>
-          <div id="sim-cal-week" class="sim-cal-week" aria-hidden="true"></div>
-          <div id="sim-cal-grid" class="sim-cal-grid" role="group"
-               aria-labelledby="sim-date-label"></div>
-        </div>
-      </div>
-      <div class="field sim-field sim-time-row">
-        <label for="sim-time">Time</label>
-        <input type="time" id="sim-time">
-        <button type="button" id="sim-now" class="sim-now">Now</button>
-      </div>
-      <!-- Scrub the whole day without leaving the slider: the time field and
-           this stay in step, and both mean wall-clock time at the main place. -->
-      <div class="sim-scrub">
-        <input type="range" id="sim-slider" min="0" max="1439" step="1" value="720"
-               aria-label="Time of day at the main location">
-      </div>
-      <!-- Hands the moment back to the real clock while keeping the places:
-           the same dial, several cities, running. -->
-      <button type="button" id="sim-live" class="sim-live" aria-pressed="false">
-        Use live time
-      </button>
-
-      <!-- The simulator's own orientation, so trying one out here leaves the
-           everyday clock as it was. Louis XIV is not offered: it orients the
-           dial by your waking hours, which are not part of a scenario. -->
-      <fieldset class="option-group">
-        <legend>Orientation</legend>
-        <label class="checkbox-label">
-          <input type="radio" name="sim-orientation" id="sim-orient-noon" value="noon" checked>
-          12 noon at top
-        </label>
-        <label class="checkbox-label">
-          <input type="radio" name="sim-orientation" id="sim-orient-centered" value="centered">
-          Day &amp; night centered
-        </label>
-      </fieldset>
-
-      <h2>Locations</h2>
-      <div id="sim-rows" class="sim-rows"></div>
-      <button type="button" id="sim-add" class="sim-add">+ Add location</button>
-      <p id="sim-error" class="error" role="alert" hidden></p>
-    </div>
   </aside>
 
   <script src="js/suncalc.js"></script>
@@ -304,6 +316,7 @@
   <script src="js/moonphase.js"></script>
   <script src="js/daynight.js"></script>
   <script src="js/sidebar.js"></script>
+  <script src="js/locations.js"></script>
   <script src="js/simulator.js"></script>
 </body>
 </html>

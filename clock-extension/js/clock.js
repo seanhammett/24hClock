@@ -1,6 +1,7 @@
 /*
  * clock.js — shared dial math, static face construction, and the hand
- * animation loop. Exposes window.Clock24 for daynight.js / sidebar.js.
+ * animation loop. Exposes window.Clock24 for daynight.js / sidebar.js /
+ * locations.js.
  */
 (function () {
   'use strict';
@@ -16,7 +17,7 @@
   // longitude, only if the lookup fails), or null for the browser's zone.
   //
   // A spec is wrapped in a zone — the spec plus its Intl formatter, which is
-  // the expensive half — so the simulator can hold a dozen of them open at
+  // the expensive half — so locations.js can hold a dozen of them open at
   // once. The dial itself still has exactly one primary zone: the one the
   // hands, the wedge and the readouts all read.
 
@@ -38,6 +39,15 @@
 
   function setTimeZone(spec) {
     primaryZone = makeZone(spec);
+  }
+
+  /**
+   * The zone the dial itself reads. Anything measuring another zone against
+   * the face — the extra hour hands — needs the same one the hands use, not
+   * its own copy built from a spec that may since have moved on.
+   */
+  function getTimeZone() {
+    return primaryZone;
   }
 
   /**
@@ -167,6 +177,7 @@
     displayAngle: displayAngle,
     setDialOffset: setDialOffset,
     setTimeZone: setTimeZone,
+    getTimeZone: getTimeZone,
     makeZone: makeZone,
     toZoneTime: toZoneTime,
     offsetMinutes: offsetMinutes,
@@ -315,17 +326,38 @@
   var sunIcon = document.getElementById('sun-icon');
   var moonIcon = document.getElementById('moon-icon');
 
-  // With the minute hand shown the hour hand stops well short of it; with the
-  // minute hand hidden there is nothing to leave room for, so it reaches out
-  // most of the way to where that hand would have ended and the icon rides out
-  // with it. The icon sits a fixed distance back from the tip either way, so
-  // the tip stays visible past it.
-  var HAND_TIP_SHORT = 92;
+  // With the minute hand shown the hour hand stops short of it; with the minute
+  // hand hidden there is nothing to leave room for, so it reaches out most of
+  // the way to where that hand would have ended and the icon rides out with it.
+  // The icon sits a fixed distance back from the tip either way, so the tip
+  // stays visible past it.
+  //
+  // The short reach only has to be told apart from the minute hand's tip at
+  // 136, not held right back from it: the two are different weights and the
+  // hour hand carries the sun or moon, so 26 of clear dial between them is
+  // plenty and the hand is far more readable for the length.
+  var HAND_TIP_SHORT = 110;
   var HAND_TIP_LONG = 126;
   var ICON_INSET = 22;
 
   var hourHandLines = hourHand.getElementsByTagName('line');
   var iconRadius = HAND_TIP_SHORT - ICON_INSET;
+
+  // The plain hand: a light core inside a dark outline, matching index.html.
+  var HAND_W_OUTLINE = 9;
+  var HAND_W_CORE = 3;
+
+  /**
+   * How heavy the hour hand is drawn. locations.js widens it to the shape of a
+   * name pill when there is a name to write along it — the hand then is the
+   * pill, for its whole length — and calls with nothing to put it back.
+   */
+  function setHourHandWeight(outline, core) {
+    hourHandLines[0].setAttribute('stroke-width', String(outline || HAND_W_OUTLINE));
+    hourHandLines[1].setAttribute('stroke-width', String(core || HAND_W_CORE));
+  }
+
+  window.Clock24.setHourHandWeight = setHourHandWeight;
 
   /** Run the hour hand out to the minute hand's reach, or pull it back in. */
   function setHourHandExtended(extended) {
@@ -341,9 +373,8 @@
   /** Where the sun/moon rides on the hour hand, so callers can keep clear. */
   window.Clock24.iconRadius = function () { return iconRadius; };
 
-  /** How far the hour hand reaches, and how far back its tail runs. */
+  /** How far the hour hand reaches. */
   window.Clock24.hourTipRadius = function () { return iconRadius + ICON_INSET; };
-  window.Clock24.hourTailRadius = function () { return C - 238; };
 
   var digitalMain = document.getElementById('digital-main');
   var digitalSeconds = document.getElementById('digital-seconds');
@@ -377,7 +408,7 @@
 
   window.Clock24.setSimulatedInstant = setSimulatedInstant;
 
-  // The simulator's extra hands ride this same frame, so they are handed the
+  // The extra locations' hands ride this same frame, so they are handed the
   // angle the hour hand has just been given rather than working out their own
   // a moment later and landing a frame behind it.
   var frameHooks = [];
