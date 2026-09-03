@@ -107,9 +107,12 @@ body {
   justify-content: center;
 }
 
+/* The simulator's ring is drawn a little outside the viewBox, which is cut to
+   the rim and its labels; nothing else on the face reaches the edge of it. */
 #clock {
   width: var(--clock-size);
   height: var(--clock-size);
+  overflow: visible;
 }
 
 .numeral {
@@ -490,12 +493,14 @@ body.no-transition .chevron {
   display: none;
 }
 
+/* Same box as the two buttons in the row below, so the three read as one set
+   of controls stacked rather than three sizes of button. */
 .loc-add {
   width: 100%;
   margin-top: 8px;
-  padding: 6px 10px;
+  padding: 4px 8px;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--panel-border);
@@ -514,7 +519,7 @@ body.no-transition .chevron {
    them everything a name for it would. */
 .loc-style {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   margin: 8px 0 0;
 }
@@ -736,16 +741,21 @@ body.simulating .sim-badge {
   color: var(--readout-muted);
 }
 
-/* A thin frame around the window, the way a recording indicator works: read
-   from anywhere on the page, in the way of nothing. */
-body.simulating::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  border: 2px solid var(--accent);
-  opacity: 0.45;
-  pointer-events: none;
-  z-index: 20;
+/* A thin ring around the whole clock, the way a recording indicator works:
+   read at a glance, in the way of nothing. It sits outside the rim's sunrise
+   and sunset labels — which reach about 216 of the face's 220 — so it frames
+   everything the face has to say rather than cutting across it, and it is the
+   full accent colour, the same as the badge below it and the sun marks on the
+   rim: everything the simulator puts on the page is the one colour. */
+.sim-ring {
+  display: none;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+body.simulating .sim-ring {
+  display: block;
 }
 
 /* Frozen time, so a second hand would sit still and read as a stopped clock;
@@ -787,12 +797,28 @@ body.simulating .digital-seconds {
   border-top: 1px solid var(--panel-border);
 }
 
-/* The switch is the block's subject, so it carries a little more weight than
-   the checkboxes under Options — and none of their bottom margin, since what
-   follows it is either nothing or a block of its own. */
+/* The switch is the block's heading as well as its control, so the two sit on
+   one line with the switch pushed to the right — and it takes none of the
+   other checkboxes' bottom margin, since what follows is either nothing or a
+   block of its own. */
 .sim-switch {
+  justify-content: space-between;
   margin-bottom: 0;
+}
+
+/* Hard against the panel's right edge: the box's own default margin would
+   leave it standing a few pixels short of everything else in the column. */
+.sim-switch input {
+  margin: 0;
+}
+
+/* Named the way every other section of the panel is named. */
+.sim-title {
+  font-size: 0.78rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
 }
 
 /* Folded away until the switch is on: this is a panel's worth of controls, and
@@ -912,15 +938,8 @@ body.simulating .digital-seconds {
   outline-offset: 1px;
 }
 
-.sim-hint {
-  margin: 0 0 12px;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--text-dim);
-}
-
-/* Time, its Now button and the day's scrub read as one control in three
-   lines. */
+/* Time and its Now button on one line, the two knobs on the next: the fields
+   say the moment exactly and the knobs are how it is moved. */
 .sim-time-row {
   display: flex;
   align-items: center;
@@ -937,23 +956,86 @@ body.simulating .digital-seconds {
   min-width: 0;
 }
 
-.sim-scrub {
+/* The two knobs together in the middle of the row, each with its name beside
+   it rather than under it — the panel has more width to spare than height, and
+   the pair reads as one control rather than two corners of the panel. */
+.sim-knobs {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 18px;
   margin-bottom: 12px;
 }
 
-/* The drag is handled in simulator.js so it can wrap through midnight, which
-   means the browser must not claim the gesture for scrolling first. */
-.sim-scrub input[type='range'] {
-  flex: 1;
-  min-width: 0;
-  accent-color: var(--accent);
-  touch-action: none;
+.sim-knob {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.sim-scrub input[type='range']:focus-visible,
+/* Dragged rather than clicked, so it takes the cursor of the axis it is
+   dragged along and the browser must not claim the gesture for scrolling
+   first. */
+.knob {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  cursor: ns-resize;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.knob-dial {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The scale the knob is read against: an hour a mark on one, a month a mark on
+   the other. Every third or sixth of them is drawn longer — the quarter days
+   and the quarter years — so the ring can be read at a glance rather than
+   counted round. */
+.knob-ticks line {
+  stroke: color-mix(in srgb, var(--text-dim) 55%, transparent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.knob-ticks line.is-major {
+  stroke: var(--text-dim);
+  stroke-width: 1.8;
+}
+
+.knob-face {
+  fill: var(--bg);
+  stroke: var(--panel-border);
+  stroke-width: 1;
+}
+
+.knob-hand line {
+  stroke: var(--text);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.knob:hover .knob-face {
+  stroke: var(--accent);
+}
+
+.knob:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.knob-caption {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 .sim-now:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;

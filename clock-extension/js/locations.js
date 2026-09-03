@@ -82,7 +82,10 @@
   var MONO_EDGE = '#e8ecf4';
   var MONO_CORE = '#1c2742';
   var MONO_OUTLINE_W = 4.5;
-  var MONO_EDGE_GROW = 1;
+  // How far the light stroke stands proud of the CORE_W core, which is what a
+  // pill has to be puffed out by for its outline to carry the same weight as
+  // the outline along the hand it lies on.
+  var MONO_EDGE_GROW = 0.75;
 
   // Every extra hand is the same length as the real hour hand, and reaches the
   // same point on the dial: they are all hour hands showing the same moment,
@@ -732,6 +735,9 @@
       styleButtons[mode].setAttribute('aria-pressed', on ? 'true' : 'false');
       styleButtons[mode].classList.toggle('is-on', on);
     });
+    // The button says what pressing it does, so it changes word with the
+    // state; pressed still says which state that is.
+    hideButton.textContent = handsHidden ? 'Show hands' : 'Hide hands';
     hideButton.setAttribute('aria-pressed', handsHidden ? 'true' : 'false');
     hideButton.classList.toggle('is-on', handsHidden);
   }

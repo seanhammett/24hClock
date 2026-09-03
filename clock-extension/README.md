@@ -121,17 +121,34 @@ dial showing a dozen places shows all of them at that one moment.
   never be mistaken for a clock that has stopped. The date and time are.
 - The controls below the switch are folded away until it is on: they are a
   panel's worth on their own, and say nothing about a clock running live.
-- While it is running the clock is framed in the accent colour and captioned
-  **Simulated**, with how far the moment is from now underneath it — "4 days,
-  12 hours from now", "8 months, 29 days, 5 hours ago". Months and years are
-  counted on the calendar, so the same date next year is a year exactly. The
-  second hand is put away: it would be sitting still.
-- Pick a day out of the calendar, set the time, or drag the slider to sweep the
-  whole day. Both read as wall-clock time at the main location. The calendar's
+- While it is running the clock is ringed in the accent colour — a circle right
+  around the dial, outside the rim's own sunrise and sunset labels — and
+  captioned **Out of time**, with how far the moment is from now underneath —
+  "4 days, 12 hours from now", "8 months, 29 days, 5 hours ago". Months and
+  years are counted on the calendar, so the same date next year is a year
+  exactly. The second hand is put away: it would be sitting still.
+- Pick a day out of the calendar, set the time, or turn one of the two knobs.
+  All of them read as wall-clock time at the main location. The calendar's
   arrows page through the months without moving the moment; on a day, the arrow
-  keys walk it a day or a week at a time. The slider has no ends: run off one
-  edge and the clock comes back round at the other on the next or previous day
-  and carries on, so one long drag walks the moment through a week.
+  keys walk it a day or a week at a time.
+- The knobs are turned the way a plug-in's are: press one and drag up or down,
+  with Shift held for a finer gear. A full turn of **Time** is one day and a
+  full turn of **Day** is a year, so each one points at its own reading against
+  a ring of marks — an hour to a mark on the one, a twelfth of the year on the
+  other.
+- Each is read from its own top. **Time** is read the way the dial is, noon at
+  the top and midnight at the bottom, so the knob and the hour hand are never a
+  mirror of each other. **Day** is read by the seasons rather than by the
+  calendar: the June solstice at the top, the September equinox a quarter
+  round, the December solstice at the bottom, the March equinox three quarters,
+  and the longer marks are those four. (The solstice is taken as the northern
+  summer one wherever the clock is pointed; the ring is struck evenly, so a
+  season's mark can sit a day or two off the true one.)
+- Neither knob has ends: turn the time knob past midnight and the date goes
+  with it, so one long drag walks the moment through a week. The day knob moves
+  whole days and leaves the time of day alone — the same hour, further off. The
+  arrow keys turn either a notch at a time (a minute, a day), and the page keys
+  a bigger one (an hour, a week).
 - Changing the main location while it is running holds the moment and re-reads
   the date and time into that place's zone, rather than making the hands jump.
 - Everything under Options applies while it runs, orientation included: the

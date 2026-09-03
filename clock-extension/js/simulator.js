@@ -23,10 +23,45 @@
 
   var DAY_MINUTES = 1440;
 
-  // The scrub's thumb, which has to be taken off the track's width to work out
-  // where along the day a given pixel falls. Set to match the slider's own
-  // width in newtab.css.
-  var THUMB = 16;
+  // How the knobs are geared. A full turn of the time knob is one day and a
+  // full turn of the day knob is one year, so what each knob is pointing at is
+  // the reading itself — midnight at the top of one, the first of January at
+  // the top of the other — rather than an arbitrary position within a range.
+  var DAYS_PER_TURN = 365;
+
+  // How far a knob has to be dragged to turn it all the way round, and how much
+  // finer that is with Shift held. 200px for a whole day is about seven minutes
+  // to the pixel; the same 200px for a year is a fortnight, which is why the
+  // day knob wants the fine gear more than the time one does — and why the
+  // calendar above is still the way to land on an exact date.
+  var PX_PER_TURN = 200;
+  var FINE = 0.25;
+
+  // The top of each knob, which is what its pointer and its marks are both
+  // measured from. The time knob is read the way the dial is — noon at the top,
+  // midnight at the bottom, the same half-turn timeToAngle puts into every
+  // angle on the face — so the two are never a mirror of each other. The day
+  // knob is read by the seasons rather than by the calendar: the June solstice
+  // at the top, the September equinox a quarter round, the December solstice at
+  // the bottom, the March equinox three quarters.
+  //
+  // The solstice is worked out for the year in question rather than fixed at a
+  // day number, since a leap year moves every day after February along by one.
+  // Which day in June it falls on drifts by a day either way over the years,
+  // and a day is a degree of this knob.
+  var NOON = 720;
+
+  // The ring of marks each knob is read against, drawn from the top: an hour a
+  // mark on the time knob, and a twelfth of a year — a month's worth — on the
+  // day knob. Every quarter is drawn longer, which on the day knob is the
+  // solstices and the equinoxes and on the time knob is midnight, noon and the
+  // two sixes. The ring is struck evenly, so a season's mark can sit up to a
+  // couple of days off the true one; that is under two degrees of the knob.
+  var TICK_IN = 24;
+  var TICK_OUT = 27.5;
+  var TICK_MAJOR_IN = 21.5;
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
 
   // ---- State --------------------------------------------------------------
 
@@ -52,7 +87,8 @@
   var calPrev = document.getElementById('sim-cal-prev');
   var calNext = document.getElementById('sim-cal-next');
   var timeInput = document.getElementById('sim-time');
-  var slider = document.getElementById('sim-slider');
+  var timeKnob = document.getElementById('sim-knob-time');
+  var dayKnob = document.getElementById('sim-knob-day');
   var nowButton = document.getElementById('sim-now');
   var deltaEl = document.getElementById('sim-delta');
 
@@ -171,8 +207,8 @@
   function setFields(zonedDate) {
     dateInput.value = isoDate(zonedDate);
     timeInput.value = hhmm(zonedDate);
-    slider.value = String(zonedDate.getUTCHours() * 60 + zonedDate.getUTCMinutes());
     showMonthOf(dateInput.value);
+    showKnobs();
   }
 
   /** Seed the fields with the current moment, as the main location reads it. */
@@ -380,7 +416,7 @@
     save();
   });
 
-  // ---- Date, time, slider, orientation ------------------------------------
+  // ---- Date, time and the two knobs ---------------------------------------
 
   /** The ISO date a given number of days on from another. */
   function shiftDate(iso, days) {
@@ -391,20 +427,19 @@
   }
 
   /**
-   * Move the scrub to a minute of the day. The value may run outside the day in
-   * either direction — the scrub has no ends — and every whole day it is out by
-   * moves the date with it, so running off midnight carries on into tomorrow
-   * rather than landing back on the same morning.
+   * Move to a minute of the day. The value may run outside the day in either
+   * direction — a knob has no ends — and every whole day it is out by moves the
+   * date with it, so turning past midnight carries on into tomorrow rather than
+   * landing back on the same morning.
    *
    * `base` is the date the value is measured from, which for a drag is the date
-   * the drag started on: the pointer's offset is cumulative, so counting the
-   * carry against a date that had already moved would apply it twice.
+   * the drag started on: the turn is cumulative, so counting the carry against
+   * a date that had already moved would apply it twice.
    */
   function setMinutes(value, base) {
     var v = Math.round(value);
     var carry = Math.floor(v / DAY_MINUTES);
     var m = v - carry * DAY_MINUTES;
-    slider.value = String(m);
     timeInput.value = pad2(Math.floor(m / 60)) + ':' + pad2(m % 60);
     var date = shiftDate(base || dateInput.value, carry);
     if (date !== dateInput.value) {
@@ -412,73 +447,212 @@
       showMonthOf(date); // and with it the calendar, which has a new day on it
     }
     fieldsAreDefault = false;
+    showKnobs();
     save();
     apply();
   }
 
-  // A range input stops dead at both ends, but time has none: run off the right
-  // and the clock should come back at midnight on the next day and carry on. So
-  // the drag is tracked by hand — the default is suppressed, the pointer
-  // captured, and the value taken from how far it has moved rather than from
-  // where it is, which is what lets it go round the dial as many times as the
-  // drag is long.
-  var drag = null;
-
-  slider.addEventListener('pointerdown', function (e) {
-    var rect = slider.getBoundingClientRect();
-    // The thumb needs room at both ends, so the travel is shorter than the
-    // element by its own width.
-    var span = Math.max(1, rect.width - THUMB);
-    var at = (e.clientX - rect.left - THUMB / 2) / span * DAY_MINUTES;
-    // Where the drag starts is clamped, not wrapped: pressing on the last pixel
-    // of the track means the end of the day, not the beginning of it. Only what
-    // the drag adds to that wraps.
-    drag = {
-      x: e.clientX,
-      from: Math.max(0, Math.min(DAY_MINUTES - 1, at)),
-      span: span,
-      date: dateInput.value
-    };
-    slider.setPointerCapture(e.pointerId);
-    e.preventDefault();
-    slider.focus();
-    setMinutes(drag.from, drag.date);
-  });
-
-  slider.addEventListener('pointermove', function (e) {
-    if (!drag) return;
-    setMinutes(drag.from + (e.clientX - drag.x) / drag.span * DAY_MINUTES, drag.date);
-  });
-
-  function endDrag(e) {
-    if (!drag) return;
-    drag = null;
-    if (slider.hasPointerCapture(e.pointerId)) slider.releasePointerCapture(e.pointerId);
+  /**
+   * Move the date by whole days, leaving the time of day where it is: the same
+   * hour of a different day, which is what the day knob is for. Days that do
+   * not exist in the destination's calendar cannot arise — every date has a
+   * next one — but an hour can go missing to a clock change, and apply() lands
+   * on the moment actually reached in that case, exactly as the time knob does.
+   */
+  function setDays(offset, base) {
+    var date = shiftDate(base || dateInput.value, Math.round(offset));
+    if (date === dateInput.value) return;
+    dateInput.value = date;
+    showMonthOf(date);
+    fieldsAreDefault = false;
+    showKnobs();
+    save();
+    apply();
   }
 
-  slider.addEventListener('pointerup', endDrag);
-  slider.addEventListener('pointercancel', endDrag);
+  // ---- The knobs ----------------------------------------------------------
 
-  // The keyboard reaches the ends the same way, and steps over them onto the
-  // next or previous day.
-  slider.addEventListener('keydown', function (e) {
-    var v = Number(slider.value);
-    if ((e.key === 'ArrowLeft' || e.key === 'ArrowDown') && v === 0) {
+  // Turned the way a plug-in's knobs are: press anywhere on one and drag up or
+  // down, as far as the gesture goes. Neither knob has ends — a day rolls into
+  // the next and a year into the next — and taking the value from how far the
+  // pointer has moved rather than from where it is on a track is what allows
+  // that: the drag is a distance, and a distance can be any number of turns.
+  //
+  // Nothing is ever read back off a knob. Both are painted from the date and
+  // time fields, which stay the one record of the moment on show.
+
+  /**
+   * The marks around a knob, `count` of them from the top round, with every
+   * `quarter`th drawn longer. They are struck here rather than written out
+   * twenty-four times in the markup, since the count is the one thing that
+   * differs between the two knobs.
+   */
+  function buildTicks(host, count, quarter) {
+    for (var i = 0; i < count; i++) {
+      var major = i % quarter === 0;
+      var tick = document.createElementNS(SVG_NS, 'line');
+      tick.setAttribute('x1', '32');
+      tick.setAttribute('y1', String(32 - TICK_OUT));
+      tick.setAttribute('x2', '32');
+      tick.setAttribute('y2', String(32 - (major ? TICK_MAJOR_IN : TICK_IN)));
+      tick.setAttribute('transform',
+        'rotate(' + (i * 360 / count).toFixed(2) + ' 32 32)');
+      if (major) tick.setAttribute('class', 'is-major');
+      host.appendChild(tick);
+    }
+  }
+
+  /** How far a drag of `px` turns a knob geared at `perTurn` units a turn. */
+  function travel(px, perTurn, fine) {
+    return px / PX_PER_TURN * perTurn * (fine ? FINE : 1);
+  }
+
+  /**
+   * One knob: its drag, its keys, and the painting of it. `spec.begin` takes
+   * down whatever a move is measured from — the drag is cumulative, so it is
+   * always applied to the state the drag started in rather than to the state it
+   * has just left, which would count every step twice — and `spec.move` is
+   * handed how far the knob has turned since, in the knob's own units.
+   *
+   * Shift is picked up mid-drag rather than only at the start, and taking it up
+   * or letting it go re-anchors the drag: what has been turned so far is banked
+   * at the gear it was turned at, and the rest starts again from where the
+   * pointer is now. Rescaling the whole drag would jump the knob on the
+   * keypress instead.
+   *
+   * What comes back is how to paint it, which is the only thing the rest of the
+   * panel has to say to a knob.
+   */
+  function makeKnob(el, spec) {
+    var hand = el.querySelector('.knob-hand');
+    var drag = null;
+
+    buildTicks(el.querySelector('.knob-ticks'), spec.ticks, spec.quarter);
+
+    el.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) return;
+      drag = { y: e.clientY, turned: 0, fine: e.shiftKey, from: spec.begin() };
+      el.setPointerCapture(e.pointerId);
       e.preventDefault();
-      setMinutes(-1);
-    } else if ((e.key === 'ArrowRight' || e.key === 'ArrowUp') && v === DAY_MINUTES - 1) {
+      el.focus();
+    });
+
+    el.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      if (e.shiftKey !== drag.fine) {
+        drag.turned += travel(drag.y - e.clientY, spec.perTurn, drag.fine);
+        drag.y = e.clientY;
+        drag.fine = e.shiftKey;
+      }
+      spec.move(drag.turned + travel(drag.y - e.clientY, spec.perTurn, drag.fine),
+        drag.from);
+    });
+
+    function end(e) {
+      if (!drag) return;
+      drag = null;
+      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+    }
+
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+
+    // The arrow keys turn it a notch and the page keys a bigger one, through
+    // the same pair as a drag: one notch from where the knob is now.
+    el.addEventListener('keydown', function (e) {
+      var by = 0;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowRight') by = spec.step;
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') by = -spec.step;
+      else if (e.key === 'PageUp') by = spec.page;
+      else if (e.key === 'PageDown') by = -spec.page;
+      else return;
       e.preventDefault();
-      setMinutes(DAY_MINUTES);
+      spec.move(by, spec.begin());
+    });
+
+    /** Point it at `fraction` of a turn from the top. */
+    return function paint(fraction, valueNow, valueText) {
+      hand.setAttribute('transform', 'rotate(' + (fraction * 360).toFixed(2) + ' 32 32)');
+      el.setAttribute('aria-valuenow', String(valueNow));
+      el.setAttribute('aria-valuetext', valueText);
+    };
+  }
+
+  /** The minute of the day the time field is showing, or null mid-edit. */
+  function currentMinutes() {
+    var t = /^(\d{1,2}):(\d{2})/.exec(timeInput.value);
+    return t ? +t[1] * 60 + +t[2] : null;
+  }
+
+  /** Whole days between two UTC dates. */
+  function daysBetween(from, to) {
+    return Math.round((to - from) / 86400000);
+  }
+
+  /**
+   * Where a date falls in its own year: the day itself, for the reading, and
+   * how far round the knob it is, which is measured from the June solstice
+   * rather than from the first of January.
+   */
+  function yearPosition(iso) {
+    var p = parseDate(iso);
+    if (!p) return null;
+    var start = Date.UTC(p.y, 0, 1);
+    var length = daysBetween(start, Date.UTC(p.y + 1, 0, 1));
+    var day = daysBetween(start, Date.UTC(p.y, p.m, p.d));
+    var solstice = daysBetween(start, Date.UTC(p.y, 5, 21));
+    return {
+      day: day,
+      turned: ((day - solstice) % length + length) % length / length,
+      date: new Date(p.y, p.m, p.d)
+    };
+  }
+
+  // A turn of the time knob is a day, measured from the minute and the date the
+  // drag began on: run past midnight in either direction and the date goes with
+  // it, which is the whole reason the moment is kept as a date and a time
+  // rather than as a time of day.
+  var paintTime = makeKnob(timeKnob, {
+    perTurn: DAY_MINUTES,
+    ticks: 24,
+    quarter: 6,
+    step: 1,
+    page: 60,
+    begin: function () {
+      return { minutes: currentMinutes(), date: dateInput.value };
+    },
+    move: function (turned, from) {
+      if (from.minutes !== null) setMinutes(from.minutes + turned, from.date);
     }
   });
 
-  slider.addEventListener('input', function () {
-    setMinutes(Number(slider.value));
+  // A turn of the day knob is a year, and the time of day is not touched: the
+  // same hour on a different day. A year is taken as 365 days however long the
+  // one being crossed actually is, which leaves a full turn of the pointer and
+  // a full turn of the knob a day apart in a leap year and nowhere else.
+  var paintDay = makeKnob(dayKnob, {
+    perTurn: DAYS_PER_TURN,
+    ticks: 12,
+    quarter: 3,
+    step: 1,
+    page: 7,
+    begin: function () { return dateInput.value; },
+    move: setDays
   });
 
+  /** Both knobs, from the fields — the only direction anything moves. */
+  function showKnobs() {
+    var m = currentMinutes();
+    // Noon at the top, as on the face: half a turn on from where the minutes
+    // of the day would otherwise put it.
+    if (m !== null) paintTime(((m + NOON) % DAY_MINUTES) / DAY_MINUTES, m, timeInput.value);
+
+    var pos = yearPosition(dateInput.value);
+    if (pos) paintDay(pos.turned, pos.day + 1, DAY_TITLE.format(pos.date));
+  }
+
   function onFieldInput() {
-    var t = /^(\d{1,2}):(\d{2})/.exec(timeInput.value);
-    if (t) slider.value = String(+t[1] * 60 + +t[2]);
+    showKnobs();
     fieldsAreDefault = false;
     save();
     apply();
@@ -512,9 +686,8 @@
       fieldsAreDefault = false;
       dateInput.value = dt.date;
       timeInput.value = dt.time;
-      var t = /^(\d{1,2}):(\d{2})/.exec(dt.time);
-      if (t) slider.value = String(+t[1] * 60 + +t[2]);
       showMonthOf(dt.date);
+      showKnobs();
     } else {
       setFieldsToNow();
     }

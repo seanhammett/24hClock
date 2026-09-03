@@ -94,19 +94,26 @@
            a second location to tell it from. Above the hour and minute hands,
            so neither can cover it. -->
       <g id="hand-labels"></g>
-      <!-- The second hand sweeps over everything, names included: it is the one
-           thing on the dial that is always moving, and it has to stay findable. -->
+      <circle id="hub" cx="220" cy="220" r="7" fill="#ff6b57" stroke="#1c2742" stroke-width="2"></circle>
+      <!-- The second hand sweeps over everything, names and hub included: it is
+           the one thing on the dial that is always moving, and it has to stay
+           findable. Last of all the hands, so its line runs unbroken from tail
+           to tip across the hub's ring rather than being cut by it. -->
       <g id="hand-second">
         <line x1="220" y1="252" x2="220" y2="58" stroke="#ff6b57" stroke-width="2" stroke-linecap="round"></line>
       </g>
-      <circle id="hub" cx="220" cy="220" r="7" fill="#ff6b57" stroke="#1c2742" stroke-width="2"></circle>
+      <!-- Shown only while the simulator is running: a ring right around the
+           dial, outside even the rim's time labels, the way a recording light
+           frames what it is warning about. It is drawn on the face rather than
+           around the window so it scales with the clock and stays with it. -->
+      <circle id="sim-ring" class="sim-ring" cx="220" cy="220" r="222"></circle>
     </svg>
     <div class="readout">
       <!-- Shown only while the simulator is driving the face, so a clock
            parked at some other moment can never be mistaken for a live one.
            The line under it says how far from now that moment is. -->
       <div id="sim-badge" class="sim-badge">
-        <span class="sim-badge-pill">Simulated</span>
+        <span class="sim-badge-pill">Out of time</span>
         <div id="sim-delta" class="sim-delta"></div>
       </div>
       <div id="digital" class="digital" aria-hidden="true"><span id="digital-main"></span><span id="digital-seconds" class="digital-seconds"></span></div>
@@ -190,17 +197,61 @@
          controls are folded away until it is switched on: they are a panel's
          worth on their own, and mean nothing while the clock is running live. -->
     <div class="simulator">
-      <h2>Simulator</h2>
+      <!-- Title and switch on one line: the block names itself and is turned on
+           in the same place, and the controls below are the only thing that
+           comes and goes. -->
       <label class="checkbox-label sim-switch">
+        <span class="sim-title">Time Travel</span>
         <input type="checkbox" id="sim-active">
-        Time Travel
       </label>
       <div id="sim-controls" class="sim-controls" hidden>
-        <p class="sim-hint">
-          Every hand on the face moves to the chosen moment, so the whole dial
-          reads as one instant seen from every location.
-        </p>
+        <!-- Two knobs, turned the way a plug-in's are: press anywhere on one
+             and drag up or down. A knob has no ends to stop at, which is the
+             whole point of using one here — time and dates do not either. One
+             turn of the left knob is a day and one turn of the right is a year,
+             and turning past a whole one carries into the next day or the next
+             year rather than stopping. They come first because they are how the
+             moment is moved; the calendar and the field below say exactly where
+             it has been moved to.
 
+             Each is read from its own top: noon on the time knob, as on the
+             dial itself, and the June solstice on the day knob, whose quarters
+             are then the equinoxes and the far solstice. The ring of marks
+             around each — an hour to a mark on the one, a twelfth of the year
+             on the other — is struck by simulator.js; the shapes here are only
+             what it turns. -->
+        <div class="sim-knobs">
+          <div class="sim-knob">
+            <div class="knob-caption">Time</div>
+            <div id="sim-knob-time" class="knob" role="slider" tabindex="0"
+                 aria-label="Time of day at the main location"
+                 aria-valuemin="0" aria-valuemax="1439" aria-valuenow="720"
+                 title="Drag up or down to move through the day (hold Shift for fine)">
+              <svg class="knob-dial" viewBox="0 0 64 64" aria-hidden="true">
+                <g class="knob-ticks"></g>
+                <circle class="knob-face" cx="32" cy="32" r="20"></circle>
+                <g class="knob-hand">
+                  <line x1="32" y1="15" x2="32" y2="25"></line>
+                </g>
+              </svg>
+            </div>
+          </div>
+          <div class="sim-knob">
+            <div id="sim-knob-day" class="knob" role="slider" tabindex="0"
+                 aria-label="Day, at the same time of day"
+                 aria-valuemin="1" aria-valuemax="366" aria-valuenow="1"
+                 title="Drag up or down to move through the year (hold Shift for fine)">
+              <svg class="knob-dial" viewBox="0 0 64 64" aria-hidden="true">
+                <g class="knob-ticks"></g>
+                <circle class="knob-face" cx="32" cy="32" r="20"></circle>
+                <g class="knob-hand">
+                  <line x1="32" y1="15" x2="32" y2="25"></line>
+                </g>
+              </svg>
+            </div>
+            <div class="knob-caption">Day</div>
+          </div>
+        </div>
         <!-- A month at a time rather than a text field with a flyout: moving
              around the calendar is most of what the simulator is for, so the
              calendar is the control. The input behind it holds the value. -->
@@ -224,13 +275,6 @@
           <label for="sim-time">Time</label>
           <input type="time" id="sim-time">
           <button type="button" id="sim-now" class="sim-now">Now</button>
-        </div>
-        <!-- Scrub the whole day without leaving the slider: the time field and
-             this stay in step, and both mean wall-clock time at the main
-             place. Run off either end and it carries on into the next day. -->
-        <div class="sim-scrub">
-          <input type="range" id="sim-slider" min="0" max="1439" step="1" value="720"
-                 aria-label="Time of day at the main location">
         </div>
       </div>
     </div>
