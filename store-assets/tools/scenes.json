@@ -1,0 +1,238 @@
+{
+  "instant": "2026-09-19T14:26:31Z",
+  "common": {
+    "theme": "dark",
+    "favorites": [
+      "marseille",
+      "london",
+      "newyork",
+      "sanfrancisco",
+      "tokyo",
+      "sydney"
+    ],
+    "overrideNewTabs": false,
+    "showMinuteHand": true,
+    "showSecondHand": true,
+    "showMinuteMarks": false,
+    "showSubhourTicks": true,
+    "showWakeSleep": false,
+    "wakeTime": "07:00",
+    "bedTime": "23:00",
+    "handsHidden": false,
+    "extraLocations": []
+  },
+  "scenes": [
+    {
+      "out": "screenshot-1-clock.png",
+      "note": "Hero: the 24-hour face on its own, Marseille mid-afternoon.",
+      "storage": {
+        "location": {
+          "lat": 43.2965,
+          "lon": 5.3698,
+          "place": "marseille",
+          "tz": {
+            "type": "iana",
+            "name": "Europe/Paris"
+          }
+        },
+        "sidebarCollapsed": true,
+        "orientation": "noon"
+      }
+    },
+    {
+      "out": "screenshot-2-sidebar.png",
+      "note": "The sidebar: location, the places on the dial, the simulator, the options.",
+      "storage": {
+        "location": {
+          "lat": 43.2965,
+          "lon": 5.3698,
+          "place": "marseille",
+          "tz": {
+            "type": "iana",
+            "name": "Europe/Paris"
+          }
+        },
+        "sidebarCollapsed": false,
+        "orientation": "noon",
+        "handStyle": "colour",
+        "extraLocations": [
+          {
+            "place": "london",
+            "lat": 51.5074,
+            "lon": -0.1278,
+            "tz": {
+              "type": "iana",
+              "name": "Europe/London"
+            }
+          },
+          {
+            "place": "newyork",
+            "lat": 40.7128,
+            "lon": -74.006,
+            "tz": {
+              "type": "iana",
+              "name": "America/New_York"
+            }
+          },
+          {
+            "place": "tokyo",
+            "lat": 35.6762,
+            "lon": 139.6503,
+            "tz": {
+              "type": "iana",
+              "name": "Asia/Tokyo"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "out": "screenshot-3-timezones.png",
+      "note": "Many places on the one dial, each hand in its own colour and named along its length, on the day-and-night-centred face.",
+      "storage": {
+        "location": {
+          "lat": 43.2965,
+          "lon": 5.3698,
+          "place": "marseille",
+          "tz": {
+            "type": "iana",
+            "name": "Europe/Paris"
+          }
+        },
+        "sidebarCollapsed": true,
+        "orientation": "centered",
+        "handStyle": "colour",
+        "extraLocations": [
+          {
+            "place": "london",
+            "lat": 51.5074,
+            "lon": -0.1278,
+            "tz": {
+              "type": "iana",
+              "name": "Europe/London"
+            }
+          },
+          {
+            "place": "newyork",
+            "lat": 40.7128,
+            "lon": -74.006,
+            "tz": {
+              "type": "iana",
+              "name": "America/New_York"
+            }
+          },
+          {
+            "place": "sanfrancisco",
+            "lat": 37.7749,
+            "lon": -122.4194,
+            "tz": {
+              "type": "iana",
+              "name": "America/Los_Angeles"
+            }
+          },
+          {
+            "place": "delhi",
+            "lat": 28.6139,
+            "lon": 77.209,
+            "tz": {
+              "type": "iana",
+              "name": "Asia/Kolkata"
+            }
+          },
+          {
+            "place": "tokyo",
+            "lat": 35.6762,
+            "lon": 139.6503,
+            "tz": {
+              "type": "iana",
+              "name": "Asia/Tokyo"
+            }
+          },
+          {
+            "place": "auckland",
+            "lat": -36.8509,
+            "lon": 174.7645,
+            "tz": {
+              "type": "iana",
+              "name": "Pacific/Auckland"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "out": "screenshot-4-louis-xiv.png",
+      "note": "Louis XIV: the dial turned so the waking hours sit centred, wake and bedtime drawn on the face.",
+      "storage": {
+        "location": {
+          "lat": 43.2965,
+          "lon": 5.3698,
+          "place": "marseille",
+          "tz": {
+            "type": "iana",
+            "name": "Europe/Paris"
+          }
+        },
+        "sidebarCollapsed": true,
+        "orientation": "louis",
+        "showWakeSleep": true
+      }
+    },
+    {
+      "out": "screenshot-5-night-moon.png",
+      "note": "Night in Tokyo: the moon rides the hour hand at its real phase, other places in grayscale.",
+      "storage": {
+        "location": {
+          "lat": 35.6762,
+          "lon": 139.6503,
+          "place": "tokyo",
+          "tz": {
+            "type": "iana",
+            "name": "Asia/Tokyo"
+          }
+        },
+        "sidebarCollapsed": true,
+        "orientation": "noon",
+        "handStyle": "mono",
+        "extraLocations": [
+          {
+            "place": "delhi",
+            "lat": 28.6139,
+            "lon": 77.209,
+            "tz": {
+              "type": "iana",
+              "name": "Asia/Kolkata"
+            }
+          },
+          {
+            "place": "sanfrancisco",
+            "lat": 37.7749,
+            "lon": -122.4194,
+            "tz": {
+              "type": "iana",
+              "name": "America/Los_Angeles"
+            }
+          },
+          {
+            "place": "london",
+            "lat": 51.5074,
+            "lon": -0.1278,
+            "tz": {
+              "type": "iana",
+              "name": "Europe/London"
+            }
+          },
+          {
+            "place": "newyork",
+            "lat": 40.7128,
+            "lon": -74.006,
+            "tz": {
+              "type": "iana",
+              "name": "America/New_York"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
