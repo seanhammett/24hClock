@@ -3,9 +3,11 @@
 //
 // Each scene in scenes.json is a set of saved settings: the driver seeds them
 // into the page's storage, reloads so the page comes up already in that state,
-// and captures the viewport. The clock is pinned to one instant across every
-// scene, so the five pictures read as five views of the same moment rather
-// than five unrelated times.
+// and captures the viewport. The clock is pinned to the instant at the top of
+// scenes.json, so the five pictures read as views of one afternoon rather than
+// of five unrelated times; a scene can carry an `advance` in seconds to stand a
+// few minutes further on, which is what keeps two shots of the same face from
+// reading as the same picture twice.
 //
 // Started by screenshots.sh, which supplies the server and browser it talks to
 // through PAGE_URL, OUT_DIR, CDP_PORT, VW and VH.
@@ -71,8 +73,19 @@ async function main() {
   await send('Runtime.enable');
   await send('Emulation.setDeviceMetricsOverride',
     { width: VW, height: VH, deviceScaleFactor: 1, mobile: false });
-  await send('Page.addScriptToEvaluateOnNewDocument',
-    { source: freezeTimeScript(FIXED) });
+  // The freeze goes in before every navigation, and a scene that stands further
+  // on replaces it: a script added on new document cannot be edited, only taken
+  // out and put back.
+  let freezeId = null;
+  const freezeAt = async ms => {
+    if (freezeId) {
+      await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: freezeId });
+    }
+    const added = await send('Page.addScriptToEvaluateOnNewDocument',
+      { source: freezeTimeScript(ms) });
+    freezeId = added.identifier;
+  };
+  await freezeAt(FIXED);
 
   const evaluate = async expr => {
     const r = await send('Runtime.evaluate',
@@ -114,12 +127,26 @@ async function main() {
       localStorage.setItem('themeFastPath', ${JSON.stringify(state.theme)});
       true;
     `);
+    await freezeAt(FIXED + (scene.advance || 0) * 1000);
     await navigate(URL);
     // The face waits on the bundled fonts, and the sidebar on storage; both
     // answer within a frame or two of load, but the picture has to be of the
     // settled page rather than of whichever one landed first.
     await evaluate('document.fonts.ready.then(function () { return true; })');
     await sleep(900);
+    // Whether the simulator is running is deliberately not remembered across
+    // restarts — see the Simulator block in the sidebar — so it is the one
+    // setting a scene cannot seed and has to switch on, which it does by the
+    // switch rather than by setting the class the switch sets.
+    if (scene.simulate) {
+      await evaluate(`
+        var box = document.getElementById('sim-active');
+        box.checked = true;
+        box.dispatchEvent(new Event('change'));
+        true;
+      `);
+      await sleep(500);
+    }
     if (scene.sidebarScroll) {
       await evaluate(`document.getElementById('sidebar').scrollTop = ${scene.sidebarScroll}; true;`);
       await sleep(200);
@@ -129,6 +156,7 @@ async function main() {
       theme: document.documentElement.getAttribute('data-theme'),
       collapsed: document.body.classList.contains('sidebar-collapsed'),
       digital: document.getElementById('digital').textContent,
+      simulating: document.body.classList.contains('simulating'),
       date: document.getElementById('date-readout').textContent,
       place: document.getElementById('location-readout').textContent,
       hands: document.getElementById('extra-hands').childElementCount,
